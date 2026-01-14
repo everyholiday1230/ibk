@@ -13,13 +13,13 @@ import os
 from pathlib import Path
 
 # Routers
-from backend.api.routes import predict, dashboard, campaigns, customers
+from api.routes import predict, dashboard, campaigns, customers
 
 # Services
-from backend.services.db import init_db, check_db_connection
-from backend.services.cache import is_redis_available, get_cache_stats
-from backend.services.scheduler import start_scheduler, stop_scheduler
-from backend.models.churn_predictor import ChurnPredictor
+from services.db import init_db, check_db_connection
+from services.cache import is_redis_available, get_cache_stats
+from services.scheduler import start_scheduler, stop_scheduler
+from models.churn_predictor import ChurnPredictor
 
 logging.basicConfig(
     level=logging.INFO,
@@ -45,7 +45,7 @@ def load_ml_model():
             return None
         
         logger.info(f"📦 Loading model from: {model_path}")
-        ml_model = ChurnPredictor.load(model_path)
+        ml_model = ChurnPredictor.load_from_file(model_path)
         logger.info("✅ ML model loaded successfully!")
         
         return ml_model

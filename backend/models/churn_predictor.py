@@ -54,38 +54,42 @@ class ChurnPredictor:
         self.is_fitted = False
         
     def _default_config(self) -> Dict:
-        """기본 모델 설정"""
+        """기본 모델 설정 (GPU 가속)"""
         return {
             'xgb_params': {
                 'objective': 'binary:logistic',
                 'eval_metric': 'auc',
-                'max_depth': 6,
+                'max_depth': 8,
                 'learning_rate': 0.05,
-                'n_estimators': 500,
+                'n_estimators': 1000,
                 'subsample': 0.8,
                 'colsample_bytree': 0.8,
                 'scale_pos_weight': 5,
                 'random_state': 42,
-                'n_jobs': -1
+                'tree_method': 'gpu_hist',
+                'gpu_id': 0,
+                'predictor': 'gpu_predictor'
             },
             'lgb_params': {
                 'objective': 'binary',
                 'metric': 'auc',
                 'boosting_type': 'gbdt',
-                'num_leaves': 31,
+                'num_leaves': 63,
                 'learning_rate': 0.05,
-                'n_estimators': 500,
+                'n_estimators': 1000,
                 'feature_fraction': 0.8,
                 'bagging_fraction': 0.8,
                 'bagging_freq': 5,
                 'scale_pos_weight': 5,
                 'random_state': 42,
-                'n_jobs': -1,
+                'device': 'gpu',
+                'gpu_platform_id': 0,
+                'gpu_device_id': 0,
                 'verbose': -1
             },
             'rf_params': {
-                'n_estimators': 300,
-                'max_depth': 15,
+                'n_estimators': 500,
+                'max_depth': 20,
                 'min_samples_split': 10,
                 'min_samples_leaf': 5,
                 'class_weight': 'balanced',
@@ -110,24 +114,32 @@ class ChurnPredictor:
     
     def train(self, X_train: pd.DataFrame, y_train: pd.Series,
               X_val: Optional[pd.DataFrame] = None, y_val: Optional[pd.Series] = None):
-        """모델 학습"""
-        logger.info("🚀 Starting Model Training")
+        """모델 학습 (GPU 가속)"""
+        logger.info("🚀 Starting Model Training with GPU Acceleration")
+        logger.info("   Using Tesla T4 GPU")
         
         X_train_processed, y_train_processed = self.prepare_data(X_train, y_train)
         
-        # XGBoost
+        # XGBoost (GPU)
+        logger.info("   [1/3] Training XGBoost on GPU...")
         self.models['xgb'] = xgb.XGBClassifier(**self.config['xgb_params'])
         self.models['xgb'].fit(X_train_processed, y_train_processed)
+        logger.info("   ✓ XGBoost completed")
         
-        # LightGBM
+        # LightGBM (GPU)
+        logger.info("   [2/3] Training LightGBM on GPU...")
         self.models['lgb'] = lgb.LGBMClassifier(**self.config['lgb_params'])
         self.models['lgb'].fit(X_train_processed, y_train_processed)
+        logger.info("   ✓ LightGBM completed")
         
-        # Random Forest
+        # Random Forest (CPU - 병렬)
+        logger.info("   [3/3] Training Random Forest...")
         self.models['rf'] = RandomForestClassifier(**self.config['rf_params'])
         self.models['rf'].fit(X_train_processed, y_train_processed)
+        logger.info("   ✓ Random Forest completed")
         
         # Ensemble
+        logger.info("   Creating ensemble model...")
         self.ensemble = VotingClassifier(
             estimators=[('xgb', self.models['xgb']), ('lgb', self.models['lgb']), ('rf', self.models['rf'])],
             voting='soft', weights=[2, 2, 1]
@@ -135,8 +147,10 @@ class ChurnPredictor:
         self.ensemble.fit(X_train_processed, y_train_processed)
         
         # SHAP
+        logger.info("   Initializing SHAP explainer...")
         self.explainer = shap.TreeExplainer(self.models['xgb'])
         self.is_fitted = True
+        logger.info("   ✓ Training completed!")
         
         if X_val is not None and y_val is not None:
             return self.evaluate(X_val, y_val)
@@ -224,3 +238,11 @@ class ChurnPredictor:
         self.explainer = data.get('explainer')
         self.is_fitted = True
         logger.info(f"✅ Model loaded from {filepath}")
+        return self
+    
+    @classmethod
+    def load_from_file(cls, filepath: str):
+        """파일에서 모델 로드 (클래스 메서드)"""
+        instance = cls()
+        instance.load(filepath)
+        return instance

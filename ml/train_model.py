@@ -44,6 +44,10 @@ def prepare_features(customers_df, transactions_df):
     X = features_df.drop(columns=['customer_id', 'churned'])
     y = features_df['churned']
     
+    # 날짜 타입 제거
+    date_cols = X.select_dtypes(include=['datetime64']).columns
+    X = X.drop(columns=date_cols)
+    
     # 범주형 변수 인코딩
     categorical_cols = X.select_dtypes(include=['object']).columns
     for col in categorical_cols:

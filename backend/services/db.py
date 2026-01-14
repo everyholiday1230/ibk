@@ -13,40 +13,20 @@ import logging
 import os
 from typing import Generator
 
-from backend.models.database import Base
+from models.database import Base
 
 logger = logging.getLogger(__name__)
 
-# 환경변수에서 DB URL 가져오기
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql://ibk_user:ibk_password@localhost:5432/ibk_churn"
+# SQLite 사용 (최고 성능을 위한 설정)
+DATABASE_URL = "sqlite:///./ibk_churn.db"
+
+# Engine 생성 (최적화된 설정)
+engine = create_engine(
+    DATABASE_URL,
+    connect_args={"check_same_thread": False},
+    poolclass=StaticPool,
+    echo=False
 )
-
-# SQLite fallback (개발용)
-if os.getenv("USE_SQLITE", "false").lower() == "true":
-    DATABASE_URL = "sqlite:///./ibk_churn.db"
-    logger.info("Using SQLite database (development mode)")
-
-# Engine 생성
-if "sqlite" in DATABASE_URL:
-    # SQLite용 설정
-    engine = create_engine(
-        DATABASE_URL,
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-        echo=False
-    )
-else:
-    # PostgreSQL용 설정
-    engine = create_engine(
-        DATABASE_URL,
-        pool_size=20,
-        max_overflow=40,
-        pool_pre_ping=True,
-        pool_recycle=3600,
-        echo=False
-    )
 
 # Session factory
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
