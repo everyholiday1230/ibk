@@ -156,7 +156,7 @@ const Reports: React.FC = () => {
       dataIndex: 'id',
       key: 'id',
       width: 60,
-      responsive: ['md'] as const,
+      responsive: ['md'] as ('md')[] as import('antd').Breakpoint[],
     },
     {
       title: '유형',
@@ -178,7 +178,7 @@ const Reports: React.FC = () => {
       title: '기간',
       key: 'period',
       width: 180,
-      responsive: ['lg'] as const,
+      responsive: ['lg'] as ('lg')[] as import('antd').Breakpoint[],
       render: (_: any, record: Report) => (
         <Text type="secondary">
           {dayjs(record.period_start).format('YY.MM.DD')} ~{' '}
@@ -198,7 +198,7 @@ const Reports: React.FC = () => {
       dataIndex: 'generated_at',
       key: 'generated_at',
       width: 140,
-      responsive: ['lg'] as const,
+      responsive: ['lg'] as ('lg')[] as import('antd').Breakpoint[],
       render: (date: string | null) =>
         date ? dayjs(date).format('YY-MM-DD HH:mm') : '-',
     },

@@ -150,7 +150,7 @@ const ABTest: React.FC = () => {
       dataIndex: 'id',
       key: 'id',
       width: 60,
-      responsive: ['md'] as const,
+      responsive: ['md'] as ('md')[] as import('antd').Breakpoint[],
     },
     {
       title: '테스트명',
@@ -174,14 +174,14 @@ const ABTest: React.FC = () => {
       key: 'target_segment',
       width: 150,
       ellipsis: true,
-      responsive: ['lg'] as const,
+      responsive: ['lg'] as ('lg')[] as import('antd').Breakpoint[],
     },
     {
       title: '주요 지표',
       dataIndex: 'primary_metric',
       key: 'primary_metric',
       width: 120,
-      responsive: ['md'] as const,
+      responsive: ['md'] as ('md')[] as import('antd').Breakpoint[],
       render: (metric: string) => {
         const labels: { [key: string]: string } = {
           'churn_rate': '이탈률',
@@ -196,7 +196,7 @@ const ABTest: React.FC = () => {
       dataIndex: 'sample_size',
       key: 'sample_size',
       width: 100,
-      responsive: ['lg'] as const,
+      responsive: ['lg'] as ('lg')[] as import('antd').Breakpoint[],
       render: (size: number) => size?.toLocaleString(),
     },
     {

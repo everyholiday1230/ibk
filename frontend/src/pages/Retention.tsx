@@ -96,7 +96,7 @@ const Retention: React.FC = () => {
       dataIndex: 'record_id',
       key: 'record_id',
       width: 80,
-      responsive: ['md'] as const,
+      responsive: ['md'] as ('md')[] as import('antd').Breakpoint[],
     },
     {
       title: '고객',
@@ -125,7 +125,7 @@ const Retention: React.FC = () => {
       dataIndex: 'action_date',
       key: 'action_date',
       width: 100,
-      responsive: ['lg'] as const,
+      responsive: ['lg'] as ('lg')[] as import('antd').Breakpoint[],
       render: (date: string) => dayjs(date).format('YY-MM-DD'),
     },
     {
