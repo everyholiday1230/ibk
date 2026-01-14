@@ -1,3 +1,12 @@
+/**
+ * 사이드바 컴포넌트
+ * - 네비게이션 메뉴
+ * - IBK 로고 클릭 시 홈으로 이동
+ * - 범온누리 브랜딩
+ * 
+ * Copyright (c) 2024-2026 (주)범온누리 이노베이션
+ */
+
 import React from 'react';
 import { Layout, Menu, Tooltip } from 'antd';
 import {
@@ -75,6 +84,11 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => {
     navigate(e.key);
   };
 
+  // 로고 클릭 시 홈(대시보드)으로 이동
+  const handleLogoClick = () => {
+    navigate('/dashboard');
+  };
+
   return (
     <Sider 
       collapsible 
@@ -90,26 +104,40 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => {
         background: 'linear-gradient(180deg, #001529 0%, #002140 100%)'
       }}
     >
-      {/* 로고 영역 */}
-      <div style={{ 
-        height: 64, 
-        margin: 16, 
-        display: 'flex', 
-        flexDirection: 'column',
-        alignItems: 'center', 
-        justifyContent: 'center',
-        color: '#fff',
-      }}>
-        <div style={{ 
+      {/* 로고 영역 - 클릭 가능 */}
+      <div 
+        onClick={handleLogoClick}
+        style={{ 
+          height: 64, 
+          margin: 16, 
           display: 'flex', 
+          flexDirection: 'column',
           alignItems: 'center', 
-          gap: 8,
-          fontSize: collapsed ? 20 : 24,
-          fontWeight: 'bold'
-        }}>
-          <BankOutlined style={{ color: '#1890ff' }} />
-          {!collapsed && <span>IBK</span>}
-        </div>
+          justifyContent: 'center',
+          color: '#fff',
+          cursor: 'pointer',
+          borderRadius: 8,
+          transition: 'background 0.3s',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = 'rgba(255,255,255,0.1)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = 'transparent';
+        }}
+      >
+        <Tooltip title="홈으로 이동" placement="right">
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: 8,
+            fontSize: collapsed ? 20 : 24,
+            fontWeight: 'bold'
+          }}>
+            <BankOutlined style={{ color: '#1890ff' }} />
+            {!collapsed && <span>IBK</span>}
+          </div>
+        </Tooltip>
         {!collapsed && (
           <div style={{ 
             fontSize: 10, 
