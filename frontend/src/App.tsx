@@ -15,15 +15,17 @@ import './App.css';
 const { Content } = Layout;
 
 const App: React.FC = () => {
+  const [collapsed, setCollapsed] = React.useState(false);
+  
   return (
     <ConfigProvider locale={koKR}>
       <Router>
         <Layout style={{ minHeight: '100vh' }}>
-          <Sidebar />
-          <Layout>
+          <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
+          <Layout style={{ marginLeft: collapsed ? 80 : 200, transition: 'margin-left 0.2s' }}>
             <Header />
             <Content style={{ margin: '24px 16px 0', overflow: 'initial' }}>
-              <div style={{ padding: 24, background: '#fff', minHeight: 360 }}>
+              <div style={{ padding: 24, background: '#fff', minHeight: 360, borderRadius: 8 }}>
                 <Routes>
                   <Route path="/" element={<Navigate to="/dashboard" replace />} />
                   <Route path="/dashboard" element={<Dashboard />} />

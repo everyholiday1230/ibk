@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Card,
   Row,
@@ -40,6 +40,7 @@ const Dashboard: React.FC = () => {
       loadRealtimeMetrics();
     }, 30000);
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadDashboardData = async () => {
@@ -370,6 +371,7 @@ const Dashboard: React.FC = () => {
               children: (
                 <Table
                   dataSource={segmentData?.by_age || []}
+                  rowKey="age_group"
                   columns={[
                     { title: '연령대', dataIndex: 'age_group', key: 'age_group' },
                     {
@@ -410,6 +412,7 @@ const Dashboard: React.FC = () => {
               children: (
                 <Table
                   dataSource={segmentData?.by_region || []}
+                  rowKey="region"
                   columns={[
                     { title: '지역', dataIndex: 'region', key: 'region' },
                     {
@@ -442,6 +445,7 @@ const Dashboard: React.FC = () => {
               children: (
                 <Table
                   dataSource={segmentData?.by_occupation || []}
+                  rowKey="occupation"
                   columns={[
                     { title: '직업', dataIndex: 'occupation', key: 'occupation' },
                     {
