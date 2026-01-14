@@ -67,6 +67,13 @@ const CustomerList: React.FC = () => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   
+  // 전체 DB 기준 통계
+  const [dbStats, setDbStats] = useState({
+    total_customers: 0,
+    avg_risk_score: 0,
+    high_risk_count: 0
+  });
+  
   // 정렬 상태
   const [sortBy, setSortBy] = useState<string>('customer_id');
   const [sortOrder, setSortOrder] = useState<string>('asc');
@@ -105,6 +112,10 @@ const CustomerList: React.FC = () => {
       const data = await apiClient.getCustomers(params);
       setCustomers(data.customers || []);
       setTotal(data.total || 0);
+      // 전체 DB 통계 설정
+      if (data.stats) {
+        setDbStats(data.stats);
+      }
     } catch (error) {
       console.error('고객 목록 로드 실패:', error);
       message.error('고객 목록을 불러오는데 실패했습니다');
@@ -388,44 +399,47 @@ const CustomerList: React.FC = () => {
     },
   ];
 
-  // 통계 계산
-  const avgRiskScore = customers.length > 0
-    ? (customers.reduce((sum, c) => sum + (c.risk_score || 0), 0) / customers.length).toFixed(1)
-    : 0;
-  
-  const highRiskCount = customers.filter(
-    (c) => c.risk_level === 'CRITICAL' || c.risk_level === 'HIGH'
-  ).length;
+  // 전체 DB 기준 통계 사용
+  const avgRiskScore = dbStats.avg_risk_score;
+  const highRiskCount = dbStats.high_risk_count;
 
   return (
     <div>
       <h1 style={{ marginBottom: 24 }}>고객 목록</h1>
 
-      {/* 통계 요약 */}
+      {/* 통계 요약 (전체 DB 기준) */}
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         <Col xs={12} sm={12} md={6}>
           <Card>
-            <Statistic title="전체 고객" value={total} suffix="명" />
-          </Card>
-        </Col>
-        <Col xs={12} sm={12} md={6}>
-          <Card>
-            <Statistic
-              title="현재 페이지"
-              value={customers.length}
-              suffix={`/ ${pageSize}명`}
+            <Statistic 
+              title="전체 고객 (DB)" 
+              value={dbStats.total_customers} 
+              suffix="명" 
             />
           </Card>
         </Col>
         <Col xs={12} sm={12} md={6}>
           <Card>
-            <Statistic title="평균 위험도" value={avgRiskScore} />
+            <Statistic
+              title="검색 결과"
+              value={total}
+              suffix="명"
+            />
+          </Card>
+        </Col>
+        <Col xs={12} sm={12} md={6}>
+          <Card>
+            <Statistic 
+              title="평균 위험도 (전체)" 
+              value={avgRiskScore} 
+              suffix="점"
+            />
           </Card>
         </Col>
         <Col xs={12} sm={12} md={6}>
           <Card>
             <Statistic
-              title="고위험 고객"
+              title="고위험 고객 (전체)"
               value={highRiskCount}
               suffix="명"
               valueStyle={{ color: '#cf1322' }}

@@ -130,8 +130,16 @@ async def get_customers(
                     if korean_stage:
                         query = query.filter(Customer.lifecycle_stage == korean_stage)
             
-            # 전체 카운트
+            # 전체 카운트 (필터 적용된)
             total = query.count()
+            
+            # 전체 DB 통계 (필터 무관)
+            total_all = db.query(func.count(Customer.customer_id)).scalar() or 0
+            avg_risk_all = db.query(func.avg(Customer.churn_probability)).scalar() or 0.5
+            avg_risk_score_all = round(avg_risk_all * 100, 1)
+            high_risk_count_all = db.query(func.count(Customer.customer_id)).filter(
+                Customer.churn_probability >= 0.7
+            ).scalar() or 0
             
             # 정렬 설정
             sort_column_map = {
@@ -162,7 +170,13 @@ async def get_customers(
                 "total_pages": (total + page_size - 1) // page_size,
                 "sort_by": sort_by,
                 "sort_order": sort_order,
-                "customers": [format_customer(c) for c in customers]
+                "customers": [format_customer(c) for c in customers],
+                # 전체 DB 기준 통계 (필터 무관)
+                "stats": {
+                    "total_customers": total_all,
+                    "avg_risk_score": avg_risk_score_all,
+                    "high_risk_count": high_risk_count_all
+                }
             }
             
     except Exception as e:
@@ -175,7 +189,12 @@ async def get_customers(
             "total_pages": 250,
             "sort_by": sort_by,
             "sort_order": sort_order,
-            "customers": [generate_mock_customer(f"C{str(i).zfill(8)}") for i in range((page-1)*page_size + 1, (page-1)*page_size + page_size + 1)]
+            "customers": [generate_mock_customer(f"C{str(i).zfill(8)}") for i in range((page-1)*page_size + 1, (page-1)*page_size + page_size + 1)],
+            "stats": {
+                "total_customers": 5000,
+                "avg_risk_score": 49.4,
+                "high_risk_count": 1095
+            }
         }
 
 

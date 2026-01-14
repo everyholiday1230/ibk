@@ -357,7 +357,7 @@ const Dashboard: React.FC = () => {
           <RobotOutlined style={{ fontSize: 24, color: '#d48806' }} />
           <div>
             <div style={{ fontSize: 14, fontWeight: 600, color: '#d48806' }}>범온누리 AI</div>
-            <div style={{ fontSize: 10, color: '#ad6800' }}>XGBoost + LightGBM + RF Ensemble</div>
+            <div style={{ fontSize: 10, color: '#ad6800' }}>ver. 1.3ibk</div>
             <div style={{ fontSize: 10, color: '#ad6800' }}>AUC 0.9941 | Precision 0.88</div>
           </div>
         </div>
@@ -656,7 +656,7 @@ const Dashboard: React.FC = () => {
                 <strong>모델 성능:</strong> AUC 0.9941 | Precision 0.8810 | Recall 0.9435
               </div>
               <div style={{ fontSize: 12, color: '#8c6d1f', marginTop: 4 }}>
-                <strong>앱상블 구성:</strong> XGBoost + LightGBM + RandomForest (GPU 가속)
+                <strong>모델 버전:</strong> 범온누리 AI ver. 1.3ibk (IBK 전용)
               </div>
             </div>
           </div>

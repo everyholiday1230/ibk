@@ -151,7 +151,7 @@ app = FastAPI(
     AI 기반 카드 고객 이탈 예측 및 방지 시스템
     
     **주요 기능:**
-    - 실시간 이탈 예측 (XGBoost, LightGBM, Random Forest 앙상블)
+    - 실시간 이탈 예측 (범온누리 AI ver. 1.3ibk)
     - SHAP 기반 설명 가능한 AI
     - 생애주기별 맞춤 분석
     - 자동 일일/주간 리포트
@@ -221,7 +221,8 @@ async def system_info():
         "version": "2.0.0",
         "ml_model": {
             "loaded": hasattr(app.state, 'ml_model') and app.state.ml_model is not None,
-            "type": "XGBoost + LightGBM + Random Forest Ensemble",
+            "name": "범온누리 AI",
+            "version": "ver. 1.3ibk",
             "features": "100+ engineered features",
             "explainability": "SHAP-based"
         },

@@ -174,7 +174,7 @@ async def get_feature_importance() -> Dict:
     return {
         "total_features": 100,
         "top_10": features,
-        "model_type": "XGBoost + LightGBM + RandomForest Ensemble",
+        "model_type": "범온누리 AI ver. 1.3ibk",
         "importance_method": "SHAP values (평균 절대값)"
     }
 

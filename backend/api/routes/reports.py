@@ -231,7 +231,7 @@ async def _generate_report_content(
                     "auc": 0.9941,
                     "precision": 0.8810,
                     "recall": 0.9435,
-                    "ensemble": "XGBoost + LightGBM + RandomForest"
+                    "version": "범온누리 AI ver. 1.3ibk"
                 },
                 "key_insights": [
                     f"전체 이탈률 {churn_rate}%로 전월 대비 개선되었습니다.",
@@ -355,11 +355,11 @@ def _get_mock_report_detail(report_id: int) -> Dict:
                 }
             },
             "ai_model": {
-                "version": "v2.0",
+                "name": "범온누리 AI",
+                "version": "ver. 1.3ibk",
                 "auc": 0.9941,
                 "precision": 0.8810,
-                "recall": 0.9435,
-                "ensemble": "XGBoost + LightGBM + RandomForest"
+                "recall": 0.9435
             },
             "key_insights": [
                 "전체 이탈률 14.78%로 안정적으로 유지되고 있습니다.",
