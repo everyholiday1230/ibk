@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 40">
+  <!-- IBK 기업은행 로고 -->
+  <defs>
+    <linearGradient id="ibkGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FF6B00"/>
+      <stop offset="100%" style="stop-color:#FF8C00"/>
+    </linearGradient>
+  </defs>
+  <!-- 원형 심볼 -->
+  <circle cx="18" cy="20" r="14" fill="#0066B3"/>
+  <circle cx="18" cy="20" r="10" fill="#fff"/>
+  <circle cx="18" cy="20" r="6" fill="#0066B3"/>
+  <!-- IBK 텍스트 -->
+  <text x="38" y="28" font-family="Arial Black, Arial, sans-serif" font-size="22" font-weight="900" fill="url(#ibkGradient)">IBK</text>
+</svg>

@@ -17,6 +17,7 @@ import {
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 import apiClient from '../services/api';
+import ibkLogo from '../assets/ibk-logo.svg';
 
 const { Header: AntHeader } = Layout;
 
@@ -135,12 +136,17 @@ const Header: React.FC = () => {
           <div style={{ 
             display: 'flex', 
             alignItems: 'center', 
-            background: 'rgba(255,255,255,0.15)', 
-            padding: '4px 12px', 
-            borderRadius: 8 
+            background: '#fff', 
+            padding: '6px 14px', 
+            borderRadius: 8,
+            gap: 8
           }}>
-            <span style={{ fontSize: 22, fontWeight: 700, color: '#fff' }}>IBK</span>
-            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', marginLeft: 6 }}>기업은행</span>
+            <img 
+              src={ibkLogo} 
+              alt="IBK 기업은행" 
+              style={{ height: 28 }}
+            />
+            <span style={{ fontSize: 13, color: '#333', fontWeight: 500 }}>기업은행</span>
           </div>
           
           {/* 시스템명 */}
