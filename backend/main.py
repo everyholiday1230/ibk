@@ -36,7 +36,11 @@ def load_ml_model():
     global ml_model
     
     try:
-        model_path = os.getenv("MODEL_PATH", "ml/models/churn_model_latest.pkl")
+        model_path = os.getenv("MODEL_PATH", "../ml/models/churn_model_latest.pkl")
+        
+        # 절대 경로로 변환
+        if not os.path.isabs(model_path):
+            model_path = os.path.join(os.path.dirname(__file__), model_path)
         
         if not os.path.exists(model_path):
             logger.warning(f"⚠️ Model file not found: {model_path}")

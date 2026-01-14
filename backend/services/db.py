@@ -82,7 +82,8 @@ def check_db_connection() -> bool:
     """데이터베이스 연결 확인"""
     try:
         with engine.connect() as conn:
-            conn.execute("SELECT 1")
+            from sqlalchemy import text
+            conn.execute(text("SELECT 1"))
         return True
     except Exception as e:
         logger.error(f"Database connection failed: {e}")
