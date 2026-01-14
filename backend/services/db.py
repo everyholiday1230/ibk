@@ -18,7 +18,9 @@ from models.database import Base
 logger = logging.getLogger(__name__)
 
 # SQLite 사용 (최고 성능을 위한 설정)
-DATABASE_URL = "sqlite:///./ibk_churn.db"
+import os
+DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "ibk_churn.db")
+DATABASE_URL = f"sqlite:///{DB_PATH}"
 
 # Engine 생성 (최적화된 설정)
 engine = create_engine(

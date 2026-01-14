@@ -8,7 +8,7 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import { message } from 'antd';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8001';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 class ApiClient {
   private client: AxiosInstance;
@@ -54,22 +54,22 @@ class ApiClient {
 
   // Dashboard APIs
   async getDashboardStats() {
-    const { data } = await this.client.get('/api/api/dashboard/stats');
+    const { data } = await this.client.get('/api/dashboard/stats');
     return data;
   }
 
   async getUrgentAlerts() {
-    const { data } = await this.client.get('/api/api/dashboard/alerts');
+    const { data } = await this.client.get('/api/dashboard/alerts');
     return data;
   }
 
   async getRealtimeMetrics() {
-    const { data } = await this.client.get('/api/api/dashboard/realtime');
+    const { data } = await this.client.get('/api/dashboard/realtime');
     return data;
   }
 
   async getSegmentAnalysis() {
-    const { data } = await this.client.get('/api/api/dashboard/segment-analysis');
+    const { data } = await this.client.get('/api/dashboard/segment-analysis');
     return data;
   }
 

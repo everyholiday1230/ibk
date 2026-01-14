@@ -9,7 +9,7 @@ import pandas as pd
 import numpy as np
 from datetime import datetime
 
-router = APIRouter(prefix="/api", tags=["Prediction"])
+router = APIRouter(prefix="", tags=["Prediction"])
 
 
 class PredictRequest(BaseModel):

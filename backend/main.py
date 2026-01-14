@@ -19,7 +19,15 @@ from api.routes import predict, dashboard, campaigns, customers
 from services.db import init_db, check_db_connection
 from services.cache import is_redis_available, get_cache_stats
 from services.scheduler import start_scheduler, stop_scheduler
-from models.churn_predictor import ChurnPredictor
+
+# ML 모델은 옵셔널 (의존성 미설치 시에도 동작)
+try:
+    from models.churn_predictor import ChurnPredictor
+    ML_AVAILABLE = True
+except ImportError as e:
+    ChurnPredictor = None
+    ML_AVAILABLE = False
+    print(f"⚠️ ML libraries not installed: {e}. Running with mock predictions.")
 
 logging.basicConfig(
     level=logging.INFO,
@@ -28,12 +36,16 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # 전역 모델 인스턴스
-ml_model: ChurnPredictor = None
+ml_model = None
 
 
 def load_ml_model():
     """ML 모델 로딩"""
     global ml_model
+    
+    if not ML_AVAILABLE:
+        logger.warning("   ⚠️ ML libraries not available. Using mock predictions.")
+        return None
     
     try:
         model_path = os.getenv("MODEL_PATH", "../ml/models/churn_model_latest.pkl")

@@ -92,11 +92,10 @@ const Dashboard: React.FC = () => {
         type: 'pie',
         radius: '65%',
         data: [
-          { value: stats.lifecycle_distribution.onboarding, name: '온보딩 (0-3개월)' },
-          { value: stats.lifecycle_distribution.growth, name: '성장 (3-12개월)' },
-          { value: stats.lifecycle_distribution.maturity, name: '성숙 (12개월+)' },
-          { value: stats.lifecycle_distribution.decline, name: '감소 추세' },
-          { value: stats.lifecycle_distribution.at_risk, name: '이탈 위험' },
+          { value: stats.lifecycle_distribution['신규'] || 0, name: '신규 (0-3개월)' },
+          { value: stats.lifecycle_distribution['성장'] || 0, name: '성장 (3-12개월)' },
+          { value: stats.lifecycle_distribution['성숙'] || 0, name: '성숙 (12개월+)' },
+          { value: stats.lifecycle_distribution['쇠퇴'] || 0, name: '쇠퇴' },
         ],
         emphasis: {
           itemStyle: {

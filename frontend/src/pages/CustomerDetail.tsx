@@ -265,13 +265,13 @@ const CustomerDetail: React.FC = () => {
               </Descriptions.Item>
               <Descriptions.Item label="생애주기">
                 {
-                  {
+                  ({
                     onboarding: '온보딩',
                     growth: '성장',
                     maturity: '성숙',
                     decline: '감소',
                     at_risk: '위험',
-                  }[customer.lifecycle_stage]
+                  } as Record<string, string>)[customer.lifecycle_stage] || customer.lifecycle_stage
                 }
               </Descriptions.Item>
               <Descriptions.Item label="월 평균 사용액">
@@ -321,7 +321,7 @@ const CustomerDetail: React.FC = () => {
                 <Table
                   columns={transactionColumns}
                   dataSource={customer.recent_transactions}
-                  rowKey={(record, index) => `${record.date}_${index}`}
+                  rowKey={(record: any, index) => `${record?.date || index}_${index}`}
                   pagination={{ pageSize: 10 }}
                 />
               ),

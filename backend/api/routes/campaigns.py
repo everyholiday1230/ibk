@@ -8,7 +8,7 @@ from typing import List, Optional, Dict
 from datetime import datetime, timedelta
 import random
 
-router = APIRouter(prefix="/api/campaigns", tags=["Campaigns"])
+router = APIRouter(prefix="/campaigns", tags=["Campaigns"])
 
 
 class Campaign(BaseModel):
