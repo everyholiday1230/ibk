@@ -1,99 +1,47 @@
 /**
  * 사이드바 컴포넌트
- * - 네비게이션 메뉴
+ * - 텍스트 기반 네비게이션 메뉴
  * - IBK 로고 클릭 시 홈으로 이동
- * - 범온누리 브랜딩
  * 
  * Copyright (c) 2024-2026 (주)범온누리 이노베이션
  */
 
 import React from 'react';
-import { Layout, Menu, Tooltip } from 'antd';
-import {
-  DashboardOutlined,
-  UserOutlined,
-  BarChartOutlined,
-  BellOutlined,
-  SettingOutlined,
-  BankOutlined,
-  RobotOutlined,
-  ExperimentOutlined,
-  FileTextOutlined,
-  SafetyOutlined
-} from '@ant-design/icons';
+import { Layout } from 'antd';
 import { useNavigate, useLocation } from 'react-router-dom';
-import type { MenuProps } from 'antd';
 
 const { Sider } = Layout;
 
-type MenuItem = Required<MenuProps>['items'][number];
+// 사이드바 고정 너비
+const SIDEBAR_WIDTH = 180;
 
-const items: MenuItem[] = [
-  {
-    key: '/dashboard',
-    icon: <DashboardOutlined />,
-    label: '대시보드',
-  },
-  {
-    key: '/customers',
-    icon: <UserOutlined />,
-    label: '고객 관리',
-  },
-  {
-    key: '/analytics',
-    icon: <BarChartOutlined />,
-    label: '이탈 분석',
-  },
-  {
-    key: '/campaigns',
-    icon: <BellOutlined />,
-    label: '캠페인',
-  },
-  {
-    key: '/retention',
-    icon: <SafetyOutlined />,
-    label: '효과 추적',
-  },
-  {
-    key: '/abtest',
-    icon: <ExperimentOutlined />,
-    label: 'A/B 테스트',
-  },
-  {
-    key: '/reports',
-    icon: <FileTextOutlined />,
-    label: '보고서',
-  },
-  {
-    key: '/settings',
-    icon: <SettingOutlined />,
-    label: '설정',
-  },
+// 메뉴 아이템 정의
+const menuItems = [
+  { key: '/dashboard', label: '대시보드' },
+  { key: '/customers', label: '고객 관리' },
+  { key: '/analytics', label: '이탈 분석' },
+  { key: '/campaigns', label: '캠페인' },
+  { key: '/reports', label: '보고서' },
+  { key: '/settings', label: '설정' },
 ];
 
-interface SidebarProps {
-  collapsed: boolean;
-  setCollapsed: (collapsed: boolean) => void;
-}
-
-const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => {
+const Sidebar: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-
-  const handleMenuClick: MenuProps['onClick'] = (e) => {
-    navigate(e.key);
-  };
 
   // 로고 클릭 시 홈(대시보드)으로 이동
   const handleLogoClick = () => {
     navigate('/dashboard');
   };
 
+  // 메뉴 클릭 핸들러
+  const handleMenuClick = (key: string) => {
+    navigate(key);
+  };
+
   return (
     <Sider 
-      collapsible 
-      collapsed={collapsed} 
-      onCollapse={setCollapsed}
+      width={SIDEBAR_WIDTH}
       style={{
         overflow: 'auto',
         height: '100vh',
@@ -101,7 +49,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => {
         left: 0,
         top: 0,
         bottom: 0,
-        background: 'linear-gradient(180deg, #001529 0%, #002140 100%)'
+        background: '#001529'
       }}
     >
       {/* 로고 영역 - 클릭 가능 */}
@@ -109,96 +57,87 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => {
         onClick={handleLogoClick}
         style={{ 
           height: 64, 
-          margin: 16, 
           display: 'flex', 
           flexDirection: 'column',
           alignItems: 'center', 
           justifyContent: 'center',
-          color: '#fff',
           cursor: 'pointer',
-          borderRadius: 8,
-          transition: 'background 0.3s',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.background = 'rgba(255,255,255,0.1)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.background = 'transparent';
+          borderBottom: '1px solid rgba(255,255,255,0.1)',
         }}
       >
-        <Tooltip title="홈으로 이동" placement="right">
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: 8,
-            fontSize: collapsed ? 20 : 24,
-            fontWeight: 'bold'
-          }}>
-            <BankOutlined style={{ color: '#1890ff' }} />
-            {!collapsed && <span>IBK</span>}
-          </div>
-        </Tooltip>
-        {!collapsed && (
-          <div style={{ 
-            fontSize: 10, 
-            color: 'rgba(255,255,255,0.65)',
-            marginTop: 2
-          }}>
-            카드고객 이탈방지
-          </div>
-        )}
+        <div style={{ 
+          fontSize: 22,
+          fontWeight: 'bold',
+          color: '#fff',
+          letterSpacing: 2
+        }}>
+          IBK
+        </div>
+        <div style={{ 
+          fontSize: 10, 
+          color: 'rgba(255,255,255,0.65)',
+          marginTop: 2
+        }}>
+          카드고객 이탈방지
+        </div>
       </div>
       
-      <Menu
-        theme="dark"
-        selectedKeys={[location.pathname]}
-        mode="inline"
-        items={items}
-        onClick={handleMenuClick}
-        style={{ background: 'transparent' }}
-      />
+      {/* 메뉴 영역 - 텍스트 기반 */}
+      <div style={{ padding: '16px 0' }}>
+        {menuItems.map((item) => {
+          const isActive = location.pathname === item.key;
+          return (
+            <div
+              key={item.key}
+              onClick={() => handleMenuClick(item.key)}
+              style={{
+                padding: '12px 24px',
+                cursor: 'pointer',
+                color: isActive ? '#fff' : 'rgba(255,255,255,0.65)',
+                background: isActive ? '#1890ff' : 'transparent',
+                fontSize: 14,
+                transition: 'all 0.2s',
+              }}
+              onMouseEnter={(e) => {
+                if (!isActive) {
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.1)';
+                  e.currentTarget.style.color = '#fff';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!isActive) {
+                  e.currentTarget.style.background = 'transparent';
+                  e.currentTarget.style.color = 'rgba(255,255,255,0.65)';
+                }
+              }}
+            >
+              {item.label}
+            </div>
+          );
+        })}
+      </div>
       
-      {/* 하단 범온누리 브랜드 영역 */}
+      {/* 하단 브랜드 영역 */}
       <div style={{
         position: 'absolute',
-        bottom: 60,
+        bottom: 20,
         left: 0,
         right: 0,
         padding: '12px 16px',
         borderTop: '1px solid rgba(255,255,255,0.1)',
+        textAlign: 'center'
       }}>
-        {collapsed ? (
-          <Tooltip title="Powered by 범온누리 AI">
-            <div style={{ 
-              display: 'flex', 
-              justifyContent: 'center',
-              color: '#ffc53d'
-            }}>
-              <RobotOutlined style={{ fontSize: 18 }} />
-            </div>
-          </Tooltip>
-        ) : (
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center',
-              gap: 6,
-              marginBottom: 4
-            }}>
-              <RobotOutlined style={{ color: '#ffc53d', fontSize: 14 }} />
-              <span style={{ color: '#ffc53d', fontSize: 12, fontWeight: 600 }}>
-                범온누리 AI
-              </span>
-            </div>
-            <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.45)' }}>
-              Powered by 범온누리 이노베이션
-            </div>
-            <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)', marginTop: 2 }}>
-              XGBoost + LightGBM + RF Ensemble
-            </div>
-          </div>
-        )}
+        <div style={{ 
+          color: '#ffc53d', 
+          fontSize: 11, 
+          fontWeight: 600,
+          marginBottom: 4
+        }}>
+          범온누리 AI
+        </div>
+        <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.45)' }}>
+          (주)범온누리 이노베이션
+        </div>
       </div>
     </Sider>
   );
