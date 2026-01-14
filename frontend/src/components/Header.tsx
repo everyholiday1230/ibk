@@ -135,20 +135,12 @@ const Header: React.FC = () => {
           <div style={{ 
             display: 'flex', 
             alignItems: 'center', 
-            background: 'rgba(255,255,255,0.95)', 
-            padding: '6px 14px', 
-            borderRadius: 8,
-            boxShadow: '0 2px 6px rgba(0,0,0,0.1)'
+            background: 'rgba(255,255,255,0.15)', 
+            padding: '4px 12px', 
+            borderRadius: 8 
           }}>
-            <img 
-              src="https://sspark.genspark.ai/cfimages?u1=aCDjaf3SI9v0XZSC5HDUJS51tJEzUxUsl3xHNzYG1EbOWjTAGnYvQB92c4ELf0n8j4R95TBZT%2FKn5oky%2BAMG1A84RMVEbrc3hN9kJzhJ6LAUuYQ%3D&u2=iyrNXSyAQZmuJ8Ut&width=2560" 
-              alt="IBK 기업은행 로고" 
-              style={{ 
-                height: 32, 
-                width: 'auto',
-                objectFit: 'contain'
-              }} 
-            />
+            <span style={{ fontSize: 22, fontWeight: 700, color: '#fff' }}>IBK</span>
+            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', marginLeft: 6 }}>기업은행</span>
           </div>
           
           {/* 시스템명 */}
