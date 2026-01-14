@@ -113,6 +113,8 @@ class ApiClient {
     risk_level?: string;
     lifecycle?: string;
     search?: string;
+    sort_by?: string;
+    sort_order?: string;
   }) {
     const { data } = await this.client.get('/api/customers', { params });
     return data;

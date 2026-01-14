@@ -1,6 +1,7 @@
 /**
  * 고객 목록 페이지
  * - 검색 및 필터 기능
+ * - 서버사이드 정렬
  * - 페이지네이션
  * - Excel 내보내기
  * 
@@ -23,6 +24,8 @@ import {
   Statistic,
   Upload,
 } from 'antd';
+import type { TableProps } from 'antd';
+import type { SorterResult } from 'antd/es/table/interface';
 import {
   SearchOutlined,
   FilterOutlined,
@@ -36,15 +39,37 @@ import * as XLSX from 'xlsx';
 
 const { Option } = Select;
 
+interface CustomerData {
+  customer_id: string;
+  name: string;
+  age: number;
+  gender: string;
+  region: string;
+  occupation: string;
+  join_date: string;
+  risk_score: number;
+  risk_level: string;
+  lifecycle_stage: string;
+  churn_probability: number;
+  monthly_avg_amount: number;
+  ltv_estimate: number;
+  last_transaction_date: string;
+  transaction_count_3m: number;
+}
+
 const CustomerList: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   
   const [loading, setLoading] = useState(false);
-  const [customers, setCustomers] = useState<any[]>([]);
+  const [customers, setCustomers] = useState<CustomerData[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
+  
+  // 정렬 상태
+  const [sortBy, setSortBy] = useState<string>('customer_id');
+  const [sortOrder, setSortOrder] = useState<string>('asc');
   
   // 필터 상태 - URL 파라미터에서 초기화
   const [searchText, setSearchText] = useState(searchParams.get('search') || '');
@@ -63,6 +88,8 @@ const CustomerList: React.FC = () => {
       const params: any = {
         page,
         page_size: pageSize,
+        sort_by: sortBy,
+        sort_order: sortOrder,
       };
       
       if (searchText.trim()) {
@@ -84,7 +111,7 @@ const CustomerList: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, pageSize, searchText, riskLevelFilter, lifecycleFilter]);
+  }, [page, pageSize, searchText, riskLevelFilter, lifecycleFilter, sortBy, sortOrder]);
 
   // 초기 로드 및 필터 변경 시 로드
   useEffect(() => {
@@ -111,7 +138,50 @@ const CustomerList: React.FC = () => {
     setSearchText('');
     setRiskLevelFilter(undefined);
     setLifecycleFilter(undefined);
+    setSortBy('customer_id');
+    setSortOrder('asc');
     setPage(1);
+  };
+
+  // 테이블 변경 핸들러 (정렬, 페이지)
+  const handleTableChange: TableProps<CustomerData>['onChange'] = (
+    pagination,
+    _filters,
+    sorter
+  ) => {
+    // 페이지네이션 처리
+    if (pagination.current) {
+      setPage(pagination.current);
+    }
+    if (pagination.pageSize && pagination.pageSize !== pageSize) {
+      setPageSize(pagination.pageSize);
+      setPage(1);
+    }
+    
+    // 정렬 처리
+    const sorterResult = sorter as SorterResult<CustomerData>;
+    if (sorterResult.field && sorterResult.order) {
+      const fieldMap: Record<string, string> = {
+        customer_id: 'customer_id',
+        risk_score: 'risk_score',
+        churn_probability: 'churn_probability',
+        monthly_avg_amount: 'monthly_avg_amount',
+        ltv_estimate: 'ltv_estimate',
+        last_transaction_date: 'last_transaction_date',
+        age: 'age',
+      };
+      
+      const field = String(sorterResult.field);
+      const newSortBy = fieldMap[field] || 'customer_id';
+      const newSortOrder = sorterResult.order === 'descend' ? 'desc' : 'asc';
+      
+      setSortBy(newSortBy);
+      setSortOrder(newSortOrder);
+    } else if (!sorterResult.order) {
+      // 정렬 해제시 기본 정렬로 복귀
+      setSortBy('customer_id');
+      setSortOrder('asc');
+    }
   };
 
   // Excel 내보내기
@@ -163,6 +233,14 @@ const CustomerList: React.FC = () => {
     return false;
   };
 
+  // 정렬 상태 계산
+  const getSortOrder = (field: string) => {
+    if (sortBy === field) {
+      return sortOrder === 'desc' ? 'descend' as const : 'ascend' as const;
+    }
+    return undefined;
+  };
+
   // 테이블 컬럼 정의
   const columns = [
     {
@@ -171,6 +249,8 @@ const CustomerList: React.FC = () => {
       key: 'customer_id',
       width: 120,
       fixed: 'left' as const,
+      sorter: true,
+      sortOrder: getSortOrder('customer_id'),
     },
     {
       title: '이름',
@@ -183,6 +263,8 @@ const CustomerList: React.FC = () => {
       dataIndex: 'age',
       key: 'age',
       width: 70,
+      sorter: true,
+      sortOrder: getSortOrder('age'),
     },
     {
       title: '성별',
@@ -208,7 +290,8 @@ const CustomerList: React.FC = () => {
       dataIndex: 'risk_score',
       key: 'risk_score',
       width: 90,
-      sorter: (a: any, b: any) => a.risk_score - b.risk_score,
+      sorter: true,
+      sortOrder: getSortOrder('risk_score'),
       render: (score: number) => (
         <Tag color={score >= 90 ? 'red' : score >= 70 ? 'orange' : score >= 50 ? 'blue' : 'green'}>
           {score}
@@ -221,7 +304,7 @@ const CustomerList: React.FC = () => {
       key: 'risk_level',
       width: 100,
       render: (level: string) => {
-        const colors: any = {
+        const colors: Record<string, string> = {
           CRITICAL: 'red',
           HIGH: 'orange',
           MEDIUM: 'blue',
@@ -236,14 +319,14 @@ const CustomerList: React.FC = () => {
       key: 'lifecycle_stage',
       width: 100,
       render: (stage: string) => {
-        const stageNames: any = {
+        const stageNames: Record<string, string> = {
           onboarding: '신규',
           growth: '성장',
           maturity: '성숙',
           decline: '쇠퇴',
           at_risk: '위험',
         };
-        const colors: any = {
+        const colors: Record<string, string> = {
           onboarding: 'blue',
           growth: 'cyan',
           maturity: 'green',
@@ -258,7 +341,8 @@ const CustomerList: React.FC = () => {
       dataIndex: 'churn_probability',
       key: 'churn_probability',
       width: 100,
-      sorter: (a: any, b: any) => a.churn_probability - b.churn_probability,
+      sorter: true,
+      sortOrder: getSortOrder('churn_probability'),
       render: (prob: number) => `${(prob * 100).toFixed(1)}%`,
     },
     {
@@ -266,7 +350,8 @@ const CustomerList: React.FC = () => {
       dataIndex: 'monthly_avg_amount',
       key: 'monthly_avg_amount',
       width: 130,
-      sorter: (a: any, b: any) => a.monthly_avg_amount - b.monthly_avg_amount,
+      sorter: true,
+      sortOrder: getSortOrder('monthly_avg_amount'),
       render: (amount: number) => `${(amount / 10000).toFixed(0)}만원`,
     },
     {
@@ -274,7 +359,8 @@ const CustomerList: React.FC = () => {
       dataIndex: 'ltv_estimate',
       key: 'ltv_estimate',
       width: 120,
-      sorter: (a: any, b: any) => a.ltv_estimate - b.ltv_estimate,
+      sorter: true,
+      sortOrder: getSortOrder('ltv_estimate'),
       render: (ltv: number) => `${(ltv / 10000).toFixed(0)}만원`,
     },
     {
@@ -282,13 +368,15 @@ const CustomerList: React.FC = () => {
       dataIndex: 'last_transaction_date',
       key: 'last_transaction_date',
       width: 120,
+      sorter: true,
+      sortOrder: getSortOrder('last_transaction_date'),
     },
     {
       title: '액션',
       key: 'action',
       width: 80,
       fixed: 'right' as const,
-      render: (_: any, record: any) => (
+      render: (_: any, record: CustomerData) => (
         <Button
           type="link"
           icon={<EyeOutlined />}
@@ -422,6 +510,7 @@ const CustomerList: React.FC = () => {
           dataSource={customers}
           rowKey="customer_id"
           loading={loading}
+          onChange={handleTableChange}
           pagination={{
             current: page,
             pageSize,
@@ -429,12 +518,6 @@ const CustomerList: React.FC = () => {
             showSizeChanger: true,
             showTotal: (total) => `전체 ${total.toLocaleString()}명`,
             pageSizeOptions: ['10', '20', '50', '100'],
-            onChange: (newPage, newPageSize) => {
-              setPage(newPage);
-              if (newPageSize !== pageSize) {
-                setPageSize(newPageSize);
-              }
-            },
           }}
           scroll={{ x: 1600 }}
           size="small"

@@ -177,23 +177,55 @@ const Header: React.FC = () => {
           
           {/* 알림 벨 아이콘 - 클릭 가능 */}
           <Tooltip title={`${unreadCount}개의 긴급 알림`}>
-            <Badge count={unreadCount} offset={[-5, 5]}>
+            <div 
+              style={{ 
+                position: 'relative', 
+                display: 'inline-flex', 
+                alignItems: 'center',
+                cursor: 'pointer',
+                padding: '4px'
+              }}
+              onClick={handleAlertClick}
+              onMouseEnter={(e) => {
+                const bell = e.currentTarget.querySelector('.bell-icon') as HTMLElement;
+                if (bell) bell.style.transform = 'scale(1.1)';
+              }}
+              onMouseLeave={(e) => {
+                const bell = e.currentTarget.querySelector('.bell-icon') as HTMLElement;
+                if (bell) bell.style.transform = 'scale(1)';
+              }}
+            >
               <BellOutlined 
+                className="bell-icon"
                 style={{ 
-                  fontSize: 20, 
-                  cursor: 'pointer', 
+                  fontSize: 22, 
                   color: '#fff',
                   transition: 'transform 0.2s'
                 }} 
-                onClick={handleAlertClick}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'scale(1.1)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'scale(1)';
-                }}
               />
-            </Badge>
+              {unreadCount > 0 && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: -2,
+                    right: -4,
+                    backgroundColor: '#ff4d4f',
+                    color: '#fff',
+                    fontSize: 10,
+                    fontWeight: 'bold',
+                    minWidth: 16,
+                    height: 16,
+                    lineHeight: '16px',
+                    borderRadius: 8,
+                    textAlign: 'center',
+                    padding: '0 4px',
+                    boxShadow: '0 0 4px rgba(0,0,0,0.3)'
+                  }}
+                >
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
+            </div>
           </Tooltip>
           
           <Dropdown menu={{ items: userMenuItems, onClick: handleUserMenuClick }} placement="bottomRight">

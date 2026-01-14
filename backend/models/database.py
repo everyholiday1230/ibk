@@ -98,6 +98,12 @@ class Customer(Base):
     risk_score = Column(Integer)  # 0-100
     last_prediction_date = Column(DateTime)
     
+    # 고객 분석 지표 (정렬용)
+    monthly_avg_amount = Column(Integer, default=0)  # 월 평균 사용액
+    ltv_estimate = Column(Integer, default=0)  # 예상 LTV
+    last_transaction_date = Column(DateTime)  # 최근 거래일
+    transaction_count_3m = Column(Integer, default=0)  # 최근 3개월 거래 건수
+    
     # 관계
     transactions = relationship("Transaction", back_populates="customer")
     actions = relationship("CustomerAction", back_populates="customer")
