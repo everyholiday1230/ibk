@@ -35,8 +35,6 @@ def format_customer(customer) -> Dict:
         '쇠퇴': 'decline'
     }
     lifecycle = lifecycle_map.get(customer.lifecycle_stage, 'maturity')
-    if customer.churned == 1:
-        lifecycle = 'at_risk'
     
     # 이름 마스킹 (개인정보 보호)
     names = ["김", "이", "박", "최", "정", "강", "윤", "장", "임", "한"]
