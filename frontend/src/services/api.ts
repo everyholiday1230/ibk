@@ -169,6 +169,130 @@ class ApiClient {
     const { data } = await this.client.get('/health');
     return data;
   }
+
+  // A/B Testing APIs
+  async getABTests(status?: string) {
+    const params = status ? { status } : {};
+    const { data } = await this.client.get('/api/abtest', { params });
+    return data;
+  }
+
+  async getABTestDetail(testId: number) {
+    const { data } = await this.client.get(`/api/abtest/${testId}`);
+    return data;
+  }
+
+  async createABTest(test: {
+    test_name: string;
+    hypothesis: string;
+    target_segment: string;
+    sample_size: number;
+    split_ratio?: number;
+    start_date: string;
+    end_date?: string;
+    group_a_name?: string;
+    group_a_description: string;
+    group_b_name?: string;
+    group_b_description: string;
+    primary_metric: string;
+  }) {
+    const { data } = await this.client.post('/api/abtest', test);
+    return data;
+  }
+
+  async analyzeABTest(testId: number, analysis: {
+    group_a_metric_value: number;
+    group_b_metric_value: number;
+    group_a_size: number;
+    group_b_size: number;
+  }) {
+    const { data } = await this.client.post(`/api/abtest/${testId}/analyze`, analysis);
+    return data;
+  }
+
+  async updateABTestStatus(testId: number, status: string) {
+    const { data } = await this.client.put(`/api/abtest/${testId}/status`, null, {
+      params: { status }
+    });
+    return data;
+  }
+
+  // Reports APIs
+  async getReports(reportType?: string) {
+    const params = reportType ? { report_type: reportType } : {};
+    const { data } = await this.client.get('/api/reports', { params });
+    return data;
+  }
+
+  async getReportDetail(reportId: number) {
+    const { data } = await this.client.get(`/api/reports/${reportId}`);
+    return data;
+  }
+
+  async generateReport(request: {
+    report_type: string;
+    period_start: string;
+    period_end: string;
+    include_sections?: string[];
+    format?: string;
+  }) {
+    const { data } = await this.client.post('/api/reports/generate', request);
+    return data;
+  }
+
+  async exportReport(reportId: number, format: string) {
+    const { data } = await this.client.get(`/api/reports/${reportId}/export`, {
+      params: { format }
+    });
+    return data;
+  }
+
+  async getCurrentSummary() {
+    const { data } = await this.client.get('/api/reports/summary/current');
+    return data;
+  }
+
+  // Retention Tracking APIs
+  async getRetentionStats(periodDays?: number, actionType?: string) {
+    const params: any = {};
+    if (periodDays) params.period_days = periodDays;
+    if (actionType) params.action_type = actionType;
+    const { data } = await this.client.get('/api/retention/stats', { params });
+    return data;
+  }
+
+  async createRetentionRecord(record: {
+    customer_id: string;
+    action_type: string;
+    before_risk_score: number;
+    before_churn_prob: number;
+    before_monthly_amount?: number;
+    measurement_period_days?: number;
+  }) {
+    const { data } = await this.client.post('/api/retention', record);
+    return data;
+  }
+
+  async updateRetentionMeasurement(recordId: number, measurement: {
+    after_risk_score: number;
+    after_churn_prob: number;
+    after_monthly_amount?: number;
+    has_churned: boolean;
+    notes?: string;
+  }) {
+    const { data } = await this.client.put(`/api/retention/${recordId}/measure`, measurement);
+    return data;
+  }
+
+  async getPendingMeasurements() {
+    const { data } = await this.client.get('/api/retention/pending');
+    return data;
+  }
+
+  async getCustomerRetentionHistory(customerId: string) {
+    const { data } = await this.client.get(`/api/retention/customer/${customerId}`);
+    return data;
+  }
 }
 
 export default new ApiClient();

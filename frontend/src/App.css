@@ -1,3 +1,10 @@
+/**
+ * IBK 카드 고객 이탈 예측 시스템 - Global Styles
+ * 모바일 반응형 레이아웃 적용
+ * 
+ * Copyright (c) 2024-2026 (주)범온누리 이노베이션
+ */
+
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
@@ -31,9 +38,274 @@ code {
   font-weight: 600;
 }
 
-/* 차트 반응형 */
-@media (max-width: 768px) {
+/* 모바일 반응형 스타일 */
+@media (max-width: 576px) {
+  /* 모바일 - 576px 이하 */
+  .ant-col {
+    margin-bottom: 12px;
+  }
+  
+  .ant-card {
+    border-radius: 6px;
+  }
+  
+  .ant-card-head {
+    padding: 8px 12px;
+    min-height: 40px;
+  }
+  
+  .ant-card-head-title {
+    font-size: 14px;
+  }
+  
+  .ant-card-body {
+    padding: 12px;
+  }
+  
+  .ant-statistic-title {
+    font-size: 12px;
+    margin-bottom: 2px;
+  }
+  
+  .ant-statistic-content {
+    font-size: 18px;
+  }
+  
+  .ant-statistic-content-suffix {
+    font-size: 12px;
+  }
+  
+  .ant-table {
+    font-size: 12px;
+  }
+  
+  .ant-table-thead > tr > th {
+    padding: 8px 6px;
+    font-size: 12px;
+  }
+  
+  .ant-table-tbody > tr > td {
+    padding: 8px 6px;
+  }
+  
+  .ant-btn {
+    padding: 4px 8px;
+  }
+  
+  .ant-btn-sm {
+    padding: 2px 6px;
+    font-size: 12px;
+  }
+  
+  /* 사이드바 오버레이 */
+  .ant-layout-sider {
+    z-index: 1000;
+  }
+  
+  /* 헤더 높이 조정 */
+  .ant-layout-header {
+    height: 56px;
+    line-height: 56px;
+    padding: 0 12px;
+  }
+  
+  /* 타이틀 크기 */
+  h1, .ant-typography h1 {
+    font-size: 20px !important;
+  }
+  
+  h2, .ant-typography h2 {
+    font-size: 18px !important;
+  }
+  
+  h3, .ant-typography h3 {
+    font-size: 16px !important;
+  }
+  
+  /* 모달 너비 */
+  .ant-modal {
+    max-width: calc(100vw - 32px);
+    margin: 16px;
+  }
+  
+  /* 탭 */
+  .ant-tabs-tab {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+  
+  /* 폼 */
+  .ant-form-item {
+    margin-bottom: 12px;
+  }
+  
+  .ant-form-item-label {
+    padding: 0 0 4px;
+  }
+  
+  .ant-form-item-label > label {
+    font-size: 13px;
+  }
+  
+  /* 알림 */
+  .ant-alert {
+    padding: 8px 12px;
+  }
+  
+  .ant-alert-message {
+    font-size: 13px;
+  }
+  
+  .ant-alert-description {
+    font-size: 12px;
+  }
+  
+  /* 진행률 바 */
+  .ant-progress-text {
+    font-size: 11px;
+  }
+  
+  /* 태그 */
+  .ant-tag {
+    font-size: 11px;
+    padding: 0 4px;
+  }
+  
+  /* Descriptions */
+  .ant-descriptions-item-label {
+    font-size: 12px;
+    padding: 8px;
+  }
+  
+  .ant-descriptions-item-content {
+    font-size: 12px;
+    padding: 8px;
+  }
+}
+
+@media (min-width: 577px) and (max-width: 768px) {
+  /* 태블릿 - 577px ~ 768px */
+  .ant-col {
+    margin-bottom: 14px;
+  }
+  
+  .ant-statistic-content {
+    font-size: 22px;
+  }
+  
+  .ant-table-thead > tr > th {
+    padding: 10px 8px;
+  }
+  
+  .ant-table-tbody > tr > td {
+    padding: 10px 8px;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 992px) {
+  /* 작은 데스크탑 - 769px ~ 992px */
   .ant-col {
     margin-bottom: 16px;
+  }
+}
+
+/* 차트 반응형 */
+.echarts-for-react {
+  width: 100% !important;
+}
+
+/* 스크롤바 스타일링 */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* 페이지별 스타일 */
+.dashboard-page,
+.analytics-page,
+.abtest-page,
+.reports-page,
+.retention-page {
+  min-height: 100%;
+}
+
+/* 그라데이션 카드 스타일 */
+.gradient-card {
+  border-radius: 8px;
+  border: none;
+}
+
+/* 애니메이션 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* 로딩 스피너 중앙 정렬 */
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+}
+
+/* 브랜딩 푸터 */
+.branding-footer {
+  background: #f5f5f5;
+  text-align: center;
+  padding: 8px 16px;
+  border-radius: 4px;
+  margin-top: 24px;
+}
+
+@media (max-width: 576px) {
+  .branding-footer {
+    margin-top: 16px;
+    padding: 6px 12px;
+    font-size: 11px;
+  }
+}
+
+/* 프린트 스타일 */
+@media print {
+  .ant-layout-sider,
+  .ant-layout-header,
+  .ant-btn,
+  .ant-pagination {
+    display: none !important;
+  }
+  
+  .ant-layout-content {
+    margin: 0 !important;
+  }
+  
+  .ant-card {
+    box-shadow: none;
+    border: 1px solid #e8e8e8;
+    page-break-inside: avoid;
   }
 }

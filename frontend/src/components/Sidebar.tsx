@@ -7,7 +7,10 @@ import {
   BellOutlined,
   SettingOutlined,
   BankOutlined,
-  RobotOutlined
+  RobotOutlined,
+  ExperimentOutlined,
+  FileTextOutlined,
+  SafetyOutlined
 } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import type { MenuProps } from 'antd';
@@ -36,6 +39,21 @@ const items: MenuItem[] = [
     key: '/campaigns',
     icon: <BellOutlined />,
     label: '캠페인',
+  },
+  {
+    key: '/retention',
+    icon: <SafetyOutlined />,
+    label: '효과 추적',
+  },
+  {
+    key: '/abtest',
+    icon: <ExperimentOutlined />,
+    label: 'A/B 테스트',
+  },
+  {
+    key: '/reports',
+    icon: <FileTextOutlined />,
+    label: '보고서',
   },
   {
     key: '/settings',

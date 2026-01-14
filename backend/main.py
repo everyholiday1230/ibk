@@ -13,7 +13,7 @@ import os
 from pathlib import Path
 
 # Routers
-from api.routes import predict, dashboard, campaigns, customers
+from api.routes import predict, dashboard, campaigns, customers, abtest, reports, retention
 
 # Services
 from services.db import init_db, check_db_connection
@@ -179,6 +179,9 @@ app.include_router(predict.router, prefix="/api", tags=["Prediction"])
 app.include_router(dashboard.router, prefix="/api", tags=["Dashboard"])
 app.include_router(campaigns.router, prefix="/api", tags=["Campaigns"])
 app.include_router(customers.router, prefix="/api", tags=["Customers"])
+app.include_router(abtest.router, prefix="/api", tags=["A/B Testing"])
+app.include_router(reports.router, prefix="/api", tags=["Reports"])
+app.include_router(retention.router, prefix="/api", tags=["Retention Tracking"])
 
 
 @app.get("/", tags=["Root"])
