@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import logging
 
-from backend.api.routes import predict
+from backend.api.routes import predict, dashboard, campaigns, customers
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -43,6 +43,9 @@ app.add_middleware(
 
 # Include routers
 app.include_router(predict.router)
+app.include_router(dashboard.router)
+app.include_router(campaigns.router)
+app.include_router(customers.router)
 
 
 @app.get("/")

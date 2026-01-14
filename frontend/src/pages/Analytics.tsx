@@ -1,96 +1,176 @@
-import React, { useEffect } from 'react';
-import { Card, Row, Col, Statistic, Table, Select } from 'antd';
-import * as echarts from 'echarts';
-import type { ColumnsType } from 'antd/es/table';
-
-interface ClusterData {
-  key: string;
-  cluster_id: number;
-  cluster_name: string;
-  size: number;
-  avg_churn_score: number;
-  churn_rate: number;
-  main_features: string;
-}
+import React, { useState, useEffect } from 'react';
+import { Card, Row, Col, Table, Tabs, Spin, Alert, message, Tag } from 'antd';
+import { BarChartOutlined, ClusterOutlined, LineChartOutlined } from '@ant-design/icons';
+import ReactECharts from 'echarts-for-react';
+import apiClient from '../services/api';
+import type { EChartsOption } from 'echarts';
 
 const Analytics: React.FC = () => {
-  const clusterData: ClusterData[] = [
-    {
-      key: '0',
-      cluster_id: 0,
-      cluster_name: '충성 고객',
-      size: 2120000,
-      avg_churn_score: 15,
-      churn_rate: 5.0,
-      main_features: '장기 가입, 높은 사용빈도, 다양한 업종'
-    },
-    {
-      key: '1',
-      cluster_id: 1,
-      cluster_name: '가격 민감형',
-      size: 1415000,
-      avg_churn_score: 48,
-      churn_rate: 20.0,
-      main_features: '혜택 중심, 프로모션 반응 높음'
-    },
-    {
-      key: '2',
-      cluster_id: 2,
-      cluster_name: '디지털 네이티브',
-      size: 990000,
-      avg_churn_score: 22,
-      churn_rate: 8.0,
-      main_features: '온라인 쇼핑, 배달앱, 젊은 층'
-    },
-    {
-      key: '3',
-      cluster_id: 3,
-      cluster_name: '휴면 위험군',
-      size: 708000,
-      avg_churn_score: 76,
-      churn_rate: 45.0,
-      main_features: '사용 급감, 60일+ 미사용'
-    },
-    {
-      key: '4',
-      cluster_id: 4,
-      cluster_name: '고가치 VIP',
-      size: 353000,
-      avg_churn_score: 12,
-      churn_rate: 3.0,
-      main_features: '고액 결제, 장기 거래, 법인카드'
-    },
-    {
-      key: '5',
-      cluster_id: 5,
-      cluster_name: '신규 활성화 필요',
-      size: 850000,
-      avg_churn_score: 58,
-      churn_rate: 25.0,
-      main_features: '가입 6개월 미만, 낮은 활성률'
-    },
-    {
-      key: '6',
-      cluster_id: 6,
-      cluster_name: '경쟁사 전환 의심',
-      size: 635623,
-      avg_churn_score: 85,
-      churn_rate: 60.0,
-      main_features: '급격한 사용 감소, 경쟁사 신호'
-    },
-  ];
+  const [loading, setLoading] = useState(true);
+  const [clusters, setClusters] = useState<any>(null);
+  const [featureImportance, setFeatureImportance] = useState<any>(null);
 
-  const columns: ColumnsType<ClusterData> = [
+  useEffect(() => {
+    loadAnalyticsData();
+  }, []);
+
+  const loadAnalyticsData = async () => {
+    try {
+      setLoading(true);
+      const [clustersData, featuresData] = await Promise.all([
+        apiClient.getClusters(),
+        apiClient.getFeatureImportance(),
+      ]);
+      setClusters(clustersData);
+      setFeatureImportance(featuresData);
+    } catch (error) {
+      message.error('분석 데이터를 불러오는데 실패했습니다');
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div style={{ textAlign: 'center', padding: '100px 0' }}>
+        <Spin size="large" tip="분석 데이터를 불러오는 중..." />
+      </div>
+    );
+  }
+
+  if (!clusters || !featureImportance) {
+    return <Alert message="데이터를 불러올 수 없습니다" type="error" />;
+  }
+
+  // 군집 분포 차트
+  const clusterDistributionOption: EChartsOption = {
+    title: { text: '고객 군집 분포', left: 'center' },
+    tooltip: { trigger: 'item', formatter: '{b}: {c}명 ({d}%)' },
+    legend: { orient: 'vertical', left: 'left', top: 'center' },
+    series: [
+      {
+        type: 'pie',
+        radius: ['40%', '70%'],
+        data: clusters.clusters.map((c: any) => ({
+          value: c.size,
+          name: c.name,
+        })),
+        emphasis: {
+          itemStyle: {
+            shadowBlur: 10,
+            shadowOffsetX: 0,
+            shadowColor: 'rgba(0, 0, 0, 0.5)',
+          },
+        },
+      },
+    ],
+  };
+
+  // 군집별 이탈률 차트
+  const clusterChurnRateOption: EChartsOption = {
+    title: { text: '군집별 이탈률', left: 'center' },
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+    xAxis: {
+      type: 'category',
+      data: clusters.clusters.map((c: any) => c.name),
+      axisLabel: { rotate: 30, interval: 0 },
+    },
+    yAxis: { type: 'value', name: '이탈률 (%)' },
+    series: [
+      {
+        type: 'bar',
+        data: clusters.clusters.map((c: any) => ({
+          value: c.churn_rate,
+          itemStyle: {
+            color: c.churn_rate > 30 ? '#ff4d4f' : c.churn_rate > 15 ? '#faad14' : '#52c41a',
+          },
+        })),
+        label: {
+          show: true,
+          position: 'top',
+          formatter: '{c}%',
+        },
+      },
+    ],
+  };
+
+  // 군집별 평균 위험도
+  const clusterRiskScoreOption: EChartsOption = {
+    title: { text: '군집별 평균 위험도', left: 'center' },
+    tooltip: { trigger: 'axis' },
+    radar: {
+      indicator: clusters.clusters.map((c: any) => ({
+        name: c.name,
+        max: 100,
+      })),
+    },
+    series: [
+      {
+        type: 'radar',
+        data: [
+          {
+            value: clusters.clusters.map((c: any) => c.avg_risk_score),
+            name: '평균 위험도',
+            itemStyle: { color: '#1890ff' },
+            areaStyle: { opacity: 0.3 },
+          },
+        ],
+      },
+    ],
+  };
+
+  // Feature 중요도 차트
+  const featureImportanceOption: EChartsOption = {
+    title: { text: 'Feature 중요도 (Top 10)', left: 'center' },
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+    grid: { left: '20%', right: '10%', bottom: '10%', top: '15%' },
+    xAxis: { type: 'value', name: '중요도' },
+    yAxis: {
+      type: 'category',
+      data: featureImportance.top_10.map((f: any) => f.name_kr),
+      inverse: true,
+    },
+    series: [
+      {
+        type: 'bar',
+        data: featureImportance.top_10.map((f: any) => ({
+          value: f.importance,
+          itemStyle: {
+            color: {
+              type: 'linear',
+              x: 0,
+              y: 0,
+              x2: 1,
+              y2: 0,
+              colorStops: [
+                { offset: 0, color: '#1890ff' },
+                { offset: 1, color: '#096dd9' },
+              ],
+            },
+          },
+        })),
+        label: {
+          show: true,
+          position: 'right',
+          formatter: (params: any) => (params.value * 100).toFixed(1) + '%',
+        },
+      },
+    ],
+  };
+
+  // 군집 테이블 컬럼
+  const clusterColumns = [
     {
-      title: 'Cluster ID',
+      title: 'Cluster',
       dataIndex: 'cluster_id',
       key: 'cluster_id',
-      width: 100,
+      width: 80,
     },
     {
-      title: 'Cluster 명',
-      dataIndex: 'cluster_name',
-      key: 'cluster_name',
+      title: '군집명',
+      dataIndex: 'name',
+      key: 'name',
       width: 150,
     },
     {
@@ -98,365 +178,194 @@ const Analytics: React.FC = () => {
       dataIndex: 'size',
       key: 'size',
       width: 120,
-      render: (size: number) => `${(size / 10000).toFixed(0)}만명`,
-      sorter: (a, b) => b.size - a.size,
+      render: (size: number) => size.toLocaleString() + '명',
+      sorter: (a: any, b: any) => a.size - b.size,
     },
     {
-      title: '평균 이탈 점수',
-      dataIndex: 'avg_churn_score',
-      key: 'avg_churn_score',
-      width: 130,
+      title: '비율',
+      dataIndex: 'percentage',
+      key: 'percentage',
+      width: 100,
+      render: (pct: number) => `${pct.toFixed(1)}%`,
+    },
+    {
+      title: '평균 위험도',
+      dataIndex: 'avg_risk_score',
+      key: 'avg_risk_score',
+      width: 120,
       render: (score: number) => (
-        <span style={{ 
-          fontWeight: 600,
-          color: score >= 70 ? '#f5222d' : score >= 50 ? '#fa8c16' : '#52c41a'
-        }}>
-          {score}점
-        </span>
+        <Tag color={score >= 70 ? 'red' : score >= 50 ? 'orange' : 'green'}>{score}</Tag>
       ),
-      sorter: (a, b) => b.avg_churn_score - a.avg_churn_score,
+      sorter: (a: any, b: any) => a.avg_risk_score - b.avg_risk_score,
     },
     {
-      title: '실제 이탈률',
+      title: '이탈률',
       dataIndex: 'churn_rate',
       key: 'churn_rate',
-      width: 120,
+      width: 100,
       render: (rate: number) => `${rate.toFixed(1)}%`,
-      sorter: (a, b) => b.churn_rate - a.churn_rate,
+      sorter: (a: any, b: any) => a.churn_rate - b.churn_rate,
     },
     {
-      title: '주요 특징',
-      dataIndex: 'main_features',
-      key: 'main_features',
+      title: '특성',
+      dataIndex: 'characteristics',
+      key: 'characteristics',
+      ellipsis: true,
+    },
+    {
+      title: '권장 전략',
+      dataIndex: 'recommended_strategy',
+      key: 'recommended_strategy',
+      ellipsis: true,
     },
   ];
 
-  useEffect(() => {
-    // 1. Cluster별 이탈률 비교
-    const clusterComparisonChart = echarts.init(document.getElementById('clusterComparisonChart')!);
-    const clusterComparisonOption = {
-      title: {
-        text: 'Cluster별 이탈률 비교',
-        left: 'center'
-      },
-      tooltip: {
-        trigger: 'axis',
-        axisPointer: {
-          type: 'shadow'
-        }
-      },
-      xAxis: {
-        type: 'category',
-        data: clusterData.map(c => c.cluster_name),
-        axisLabel: {
-          interval: 0,
-          rotate: 30
-        }
-      },
-      yAxis: {
-        type: 'value',
-        axisLabel: {
-          formatter: '{value}%'
-        }
-      },
-      series: [
-        {
-          name: '이탈률',
-          type: 'bar',
-          data: clusterData.map(c => ({
-            value: c.churn_rate,
-            itemStyle: {
-              color: c.churn_rate >= 40 ? '#f5222d' : 
-                     c.churn_rate >= 20 ? '#fa8c16' : '#52c41a'
-            }
-          })),
-          label: {
-            show: true,
-            position: 'top',
-            formatter: '{c}%'
-          }
-        }
-      ]
-    };
-    clusterComparisonChart.setOption(clusterComparisonOption);
-
-    // 2. Cluster 크기 분포
-    const clusterSizeChart = echarts.init(document.getElementById('clusterSizeChart')!);
-    const clusterSizeOption = {
-      title: {
-        text: 'Cluster별 고객 분포',
-        left: 'center'
-      },
-      tooltip: {
-        trigger: 'item',
-        formatter: '{a} <br/>{b}: {c}만명 ({d}%)'
-      },
-      legend: {
-        bottom: 10,
-        left: 'center'
-      },
-      series: [
-        {
-          name: 'Cluster',
-          type: 'pie',
-          radius: ['40%', '70%'],
-          avoidLabelOverlap: false,
-          itemStyle: {
-            borderRadius: 10,
-            borderColor: '#fff',
-            borderWidth: 2
-          },
-          label: {
-            show: true,
-            formatter: '{b}\n{d}%'
-          },
-          emphasis: {
-            label: {
-              show: true,
-              fontSize: 16,
-              fontWeight: 'bold'
-            }
-          },
-          data: clusterData.map((c, i) => ({
-            value: c.size / 10000,
-            name: c.cluster_name,
-            itemStyle: {
-              color: ['#1890ff', '#52c41a', '#722ed1', '#fa8c16', '#faad14', '#13c2c2', '#f5222d'][i]
-            }
-          }))
-        }
-      ]
-    };
-    clusterSizeChart.setOption(clusterSizeOption);
-
-    // 3. Feature Importance (전체)
-    const featureImportanceChart = echarts.init(document.getElementById('featureImportanceChart')!);
-    const featureImportanceOption = {
-      title: {
-        text: 'Top 15 Feature Importance (SHAP)',
-        left: 'center'
-      },
-      tooltip: {
-        trigger: 'axis',
-        axisPointer: {
-          type: 'shadow'
-        }
-      },
-      grid: {
-        left: '3%',
-        right: '4%',
-        bottom: '3%',
-        containLabel: true
-      },
-      xAxis: {
-        type: 'value'
-      },
-      yAxis: {
-        type: 'category',
-        data: [
-          'competitor_signal',
-          'benefit_utilization',
-          'usage_consistency',
-          'main_card_prob',
-          'category_dropout',
-          'loyalty_score',
-          'decline_rate',
-          'category_diversity',
-          'days_since_last_txn',
-          'monetary_drop',
-          'frequency_decline',
-          'recency_days',
-          'age',
-          'region',
-          'gender'
-        ].reverse()
-      },
-      series: [
-        {
-          name: 'SHAP Importance',
-          type: 'bar',
-          data: [0.08, 0.09, 0.10, 0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18, 0.20, 0.22, 0.24, 0.25].reverse(),
-          itemStyle: {
-            color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
-              { offset: 0, color: '#1890ff' },
-              { offset: 1, color: '#52c41a' }
-            ])
-          }
-        }
-      ]
-    };
-    featureImportanceChart.setOption(featureImportanceOption);
-
-    // 4. 모델 성능 지표
-    const modelPerformanceChart = echarts.init(document.getElementById('modelPerformanceChart')!);
-    const modelPerformanceOption = {
-      title: {
-        text: '모델 성능 비교 (XGBoost vs LightGBM vs RF)',
-        left: 'center'
-      },
-      tooltip: {
-        trigger: 'axis'
-      },
-      legend: {
-        data: ['XGBoost', 'LightGBM', 'Random Forest'],
-        bottom: 10
-      },
-      radar: {
-        indicator: [
-          { name: 'AUC-ROC', max: 1.0 },
-          { name: 'Precision', max: 1.0 },
-          { name: 'Recall', max: 1.0 },
-          { name: 'F1 Score', max: 1.0 },
-          { name: 'F2 Score', max: 1.0 }
-        ]
-      },
-      series: [
-        {
-          name: '모델 성능',
-          type: 'radar',
-          data: [
-            {
-              value: [0.87, 0.78, 0.82, 0.80, 0.81],
-              name: 'XGBoost',
-              itemStyle: { color: '#1890ff' }
-            },
-            {
-              value: [0.86, 0.76, 0.84, 0.79, 0.82],
-              name: 'LightGBM',
-              itemStyle: { color: '#52c41a' }
-            },
-            {
-              value: [0.83, 0.74, 0.78, 0.76, 0.77],
-              name: 'Random Forest',
-              itemStyle: { color: '#722ed1' }
-            }
-          ]
-        }
-      ]
-    };
-    modelPerformanceChart.setOption(modelPerformanceOption);
-
-    const handleResize = () => {
-      clusterComparisonChart.resize();
-      clusterSizeChart.resize();
-      featureImportanceChart.resize();
-      modelPerformanceChart.resize();
-    };
-    window.addEventListener('resize', handleResize);
-
-    return () => {
-      clusterComparisonChart.dispose();
-      clusterSizeChart.dispose();
-      featureImportanceChart.dispose();
-      modelPerformanceChart.dispose();
-      window.removeEventListener('resize', handleResize);
-    };
-  }, []);
+  // Feature 테이블 컬럼
+  const featureColumns = [
+    {
+      title: '순위',
+      dataIndex: 'rank',
+      key: 'rank',
+      width: 80,
+    },
+    {
+      title: 'Feature',
+      dataIndex: 'name_kr',
+      key: 'name_kr',
+      width: 180,
+    },
+    {
+      title: '기술명',
+      dataIndex: 'name',
+      key: 'name',
+      width: 200,
+    },
+    {
+      title: '중요도',
+      dataIndex: 'importance',
+      key: 'importance',
+      width: 150,
+      render: (imp: number) => (
+        <div>
+          <div style={{ marginBottom: 4 }}>{(imp * 100).toFixed(2)}%</div>
+          <div
+            style={{
+              width: '100%',
+              height: 8,
+              backgroundColor: '#f0f0f0',
+              borderRadius: 4,
+              overflow: 'hidden',
+            }}
+          >
+            <div
+              style={{
+                width: `${imp * 100}%`,
+                height: '100%',
+                backgroundColor: '#1890ff',
+              }}
+            />
+          </div>
+        </div>
+      ),
+      sorter: (a: any, b: any) => a.importance - b.importance,
+    },
+  ];
 
   return (
     <div>
-      <Row gutter={[16, 16]}>
-        {/* 모델 성능 지표 */}
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title="AUC-ROC"
-              value={0.87}
-              precision={2}
-              valueStyle={{ color: '#52c41a' }}
-            />
-            <div style={{ marginTop: 8, fontSize: 12, color: '#999' }}>
-              목표: ≥ 0.85 ✅
-            </div>
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title="Precision"
-              value={0.78}
-              precision={2}
-              valueStyle={{ color: '#52c41a' }}
-            />
-            <div style={{ marginTop: 8, fontSize: 12, color: '#999' }}>
-              목표: ≥ 0.75 ✅
-            </div>
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title="Recall"
-              value={0.82}
-              precision={2}
-              valueStyle={{ color: '#52c41a' }}
-            />
-            <div style={{ marginTop: 8, fontSize: 12, color: '#999' }}>
-              목표: ≥ 0.80 ✅
-            </div>
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title="F2 Score"
-              value={0.81}
-              precision={2}
-              valueStyle={{ color: '#52c41a' }}
-            />
-            <div style={{ marginTop: 8, fontSize: 12, color: '#999' }}>
-              목표: ≥ 0.78 ✅
-            </div>
-          </Card>
-        </Col>
+      <h1 style={{ marginBottom: 24 }}>
+        <BarChartOutlined /> 고급 분석
+      </h1>
 
-        {/* 차트 영역 */}
-        <Col span={12}>
-          <Card>
-            <div id="clusterComparisonChart" style={{ width: '100%', height: 350 }} />
-          </Card>
-        </Col>
-        <Col span={12}>
-          <Card>
-            <div id="clusterSizeChart" style={{ width: '100%', height: 350 }} />
-          </Card>
-        </Col>
+      <Alert
+        message="분석 정보"
+        description={
+          <div>
+            <p>
+              <strong>군집 분석:</strong> {clusters.clustering_method}
+            </p>
+            <p>
+              <strong>사용 Features:</strong> {clusters.features_used}개
+            </p>
+            <p>
+              <strong>Silhouette Score:</strong> {clusters.silhouette_score}
+            </p>
+            <p>
+              <strong>Feature 중요도 방법:</strong> {featureImportance.importance_method}
+            </p>
+            <p>
+              <strong>모델:</strong> {featureImportance.model_type}
+            </p>
+          </div>
+        }
+        type="info"
+        showIcon
+        style={{ marginBottom: 24 }}
+      />
 
-        <Col span={12}>
-          <Card>
-            <div id="featureImportanceChart" style={{ width: '100%', height: 400 }} />
-          </Card>
-        </Col>
-        <Col span={12}>
-          <Card>
-            <div id="modelPerformanceChart" style={{ width: '100%', height: 400 }} />
-          </Card>
-        </Col>
-
-        {/* Cluster 테이블 */}
-        <Col span={24}>
-          <Card 
-            title="고객 군집(Cluster) 분석 상세"
-            extra={
-              <Select
-                defaultValue="all"
-                style={{ width: 200 }}
-                options={[
-                  { value: 'all', label: '전체 Cluster' },
-                  { value: 'high_risk', label: '고위험 Cluster만' },
-                  { value: 'low_risk', label: '저위험 Cluster만' }
-                ]}
-              />
-            }
-          >
-            <Table
-              columns={columns}
-              dataSource={clusterData}
-              pagination={false}
-            />
-          </Card>
-        </Col>
-      </Row>
+      <Card style={{ marginBottom: 16 }}>
+        <Tabs
+          items={[
+            {
+              key: 'cluster_overview',
+              label: (
+                <span>
+                  <ClusterOutlined /> 군집 개요
+                </span>
+              ),
+              children: (
+                <Row gutter={16}>
+                  <Col span={12}>
+                    <ReactECharts option={clusterDistributionOption} style={{ height: 400 }} />
+                  </Col>
+                  <Col span={12}>
+                    <ReactECharts option={clusterChurnRateOption} style={{ height: 400 }} />
+                  </Col>
+                </Row>
+              ),
+            },
+            {
+              key: 'cluster_details',
+              label: (
+                <span>
+                  <ClusterOutlined /> 군집 상세
+                </span>
+              ),
+              children: (
+                <>
+                  <ReactECharts option={clusterRiskScoreOption} style={{ height: 400, marginBottom: 16 }} />
+                  <Table
+                    dataSource={clusters.clusters}
+                    columns={clusterColumns}
+                    rowKey="cluster_id"
+                    pagination={false}
+                    scroll={{ x: 1400 }}
+                  />
+                </>
+              ),
+            },
+            {
+              key: 'feature_importance',
+              label: (
+                <span>
+                  <LineChartOutlined /> Feature 중요도
+                </span>
+              ),
+              children: (
+                <>
+                  <ReactECharts option={featureImportanceOption} style={{ height: 500, marginBottom: 16 }} />
+                  <Table
+                    dataSource={featureImportance.top_10}
+                    columns={featureColumns}
+                    rowKey="rank"
+                    pagination={false}
+                  />
+                </>
+              ),
+            },
+          ]}
+        />
+      </Card>
     </div>
   );
 };

@@ -1,63 +1,125 @@
-import React, { useState } from 'react';
-import { Table, Card, Input, Select, Button, Tag, Space, Progress } from 'antd';
-import { SearchOutlined, FilterOutlined, ExportOutlined } from '@ant-design/icons';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { ColumnsType } from 'antd/es/table';
+import {
+  Table,
+  Button,
+  Input,
+  Select,
+  Tag,
+  Space,
+  Card,
+  message,
+  Spin,
+  Row,
+  Col,
+  Statistic,
+  Modal,
+  Upload,
+} from 'antd';
+import {
+  SearchOutlined,
+  FilterOutlined,
+  ExportOutlined,
+  UploadOutlined,
+  EyeOutlined,
+} from '@ant-design/icons';
+import apiClient from '../services/api';
+import * as XLSX from 'xlsx';
 
-const { Search } = Input;
-
-interface Customer {
-  key: string;
-  customer_id: string;
-  name: string;
-  age: number;
-  gender: string;
-  region: string;
-  lifecycle: string;
-  churn_score: number;
-  last_txn_days: number;
-  monthly_amount: number;
-  join_date: string;
-}
+const { Option } = Select;
 
 const CustomerList: React.FC = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [customers, setCustomers] = useState<any[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [filters, setFilters] = useState<any>({});
   const [searchText, setSearchText] = useState('');
 
-  // 샘플 고객 데이터
-  const customerData: Customer[] = Array.from({ length: 50 }, (_, i) => ({
-    key: `${i}`,
-    customer_id: `C${String(i + 10000).padStart(7, '0')}`,
-    name: `고객${i + 1}`,
-    age: 25 + Math.floor(Math.random() * 40),
-    gender: Math.random() > 0.5 ? '남' : '여',
-    region: ['서울', '경기', '부산', '대구', '인천'][Math.floor(Math.random() * 5)],
-    lifecycle: ['onboarding', 'growth', 'maturity', 'decline', 'at_risk'][Math.floor(Math.random() * 5)],
-    churn_score: Math.floor(Math.random() * 100),
-    last_txn_days: Math.floor(Math.random() * 90),
-    monthly_amount: Math.floor(Math.random() * 5000000) + 100000,
-    join_date: `202${Math.floor(Math.random() * 5)}-${String(Math.floor(Math.random() * 12) + 1).padStart(2, '0')}-${String(Math.floor(Math.random() * 28) + 1).padStart(2, '0')}`
-  }));
+  useEffect(() => {
+    loadCustomers();
+  }, [page, pageSize, filters]);
 
-  const lifecycleConfig: Record<string, { color: string; label: string }> = {
-    onboarding: { color: 'green', label: 'Onboarding' },
-    growth: { color: 'blue', label: 'Growth' },
-    maturity: { color: 'purple', label: 'Maturity' },
-    decline: { color: 'orange', label: 'Decline' },
-    at_risk: { color: 'red', label: 'At-Risk' }
+  const loadCustomers = async () => {
+    try {
+      setLoading(true);
+      const data = await apiClient.getCustomers({
+        page,
+        page_size: pageSize,
+        ...filters,
+        search: searchText || undefined,
+      });
+      setCustomers(data.customers);
+      setTotal(data.total);
+    } catch (error) {
+      message.error('고객 목록을 불러오는데 실패했습니다');
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const columns: ColumnsType<Customer> = [
+  const handleSearch = () => {
+    setPage(1);
+    loadCustomers();
+  };
+
+  const handleFilterChange = (key: string, value: any) => {
+    setFilters({ ...filters, [key]: value });
+    setPage(1);
+  };
+
+  const handleExport = () => {
+    try {
+      const exportData = customers.map((c) => ({
+        고객ID: c.customer_id,
+        이름: c.name,
+        나이: c.age,
+        성별: c.gender === 'M' ? '남' : '여',
+        지역: c.region,
+        직업: c.occupation,
+        가입일: c.join_date,
+        위험도: c.risk_score,
+        위험등급: c.risk_level,
+        생애주기: c.lifecycle_stage,
+        이탈확률: c.churn_probability,
+        월평균사용액: c.monthly_avg_amount,
+        예상LTV: c.ltv_estimate,
+        최근거래일: c.last_transaction_date,
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(exportData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, '고객목록');
+      XLSX.writeFile(wb, `IBK_고객목록_${new Date().toISOString().split('T')[0]}.xlsx`);
+      message.success('Excel 파일이 다운로드되었습니다');
+    } catch (error) {
+      message.error('Excel 내보내기에 실패했습니다');
+    }
+  };
+
+  const handleBatchUpload = async (file: File) => {
+    try {
+      setLoading(true);
+      await apiClient.predictBatch(file);
+      message.success('배치 예측이 시작되었습니다. 완료 시 알림을 받으실 수 있습니다.');
+    } catch (error) {
+      message.error('배치 업로드에 실패했습니다');
+    } finally {
+      setLoading(false);
+    }
+    return false; // Prevent default upload behavior
+  };
+
+  const columns = [
     {
       title: '고객 ID',
       dataIndex: 'customer_id',
       key: 'customer_id',
-      fixed: 'left',
       width: 120,
-      render: (text: string) => (
-        <a onClick={() => navigate(`/customers/${text}`)}>{text}</a>
-      ),
+      fixed: 'left' as const,
     },
     {
       title: '이름',
@@ -69,155 +131,247 @@ const CustomerList: React.FC = () => {
       title: '나이',
       dataIndex: 'age',
       key: 'age',
-      width: 80,
-      sorter: (a, b) => a.age - b.age,
+      width: 70,
     },
     {
       title: '성별',
       dataIndex: 'gender',
       key: 'gender',
-      width: 80,
-      filters: [
-        { text: '남', value: '남' },
-        { text: '여', value: '여' },
-      ],
-      onFilter: (value, record) => record.gender === value,
+      width: 70,
+      render: (gender: string) => (gender === 'M' ? '남' : '여'),
     },
     {
       title: '지역',
       dataIndex: 'region',
       key: 'region',
       width: 100,
+    },
+    {
+      title: '직업',
+      dataIndex: 'occupation',
+      key: 'occupation',
+      width: 100,
+    },
+    {
+      title: '위험도',
+      dataIndex: 'risk_score',
+      key: 'risk_score',
+      width: 90,
+      sorter: (a: any, b: any) => a.risk_score - b.risk_score,
+      render: (score: number) => (
+        <Tag color={score >= 90 ? 'red' : score >= 70 ? 'orange' : score >= 50 ? 'blue' : 'green'}>
+          {score}
+        </Tag>
+      ),
+    },
+    {
+      title: '위험 등급',
+      dataIndex: 'risk_level',
+      key: 'risk_level',
+      width: 100,
       filters: [
-        { text: '서울', value: '서울' },
-        { text: '경기', value: '경기' },
-        { text: '부산', value: '부산' },
-        { text: '대구', value: '대구' },
-        { text: '인천', value: '인천' },
+        { text: 'CRITICAL', value: 'CRITICAL' },
+        { text: 'HIGH', value: 'HIGH' },
+        { text: 'MEDIUM', value: 'MEDIUM' },
+        { text: 'LOW', value: 'LOW' },
       ],
-      onFilter: (value, record) => record.region === value,
+      render: (level: string) => {
+        const colors: any = {
+          CRITICAL: 'red',
+          HIGH: 'orange',
+          MEDIUM: 'blue',
+          LOW: 'green',
+        };
+        return <Tag color={colors[level]}>{level}</Tag>;
+      },
     },
     {
       title: '생애주기',
-      dataIndex: 'lifecycle',
-      key: 'lifecycle',
+      dataIndex: 'lifecycle_stage',
+      key: 'lifecycle_stage',
       width: 120,
-      render: (lifecycle: string) => (
-        <Tag color={lifecycleConfig[lifecycle]?.color}>
-          {lifecycleConfig[lifecycle]?.label}
-        </Tag>
-      ),
       filters: [
-        { text: 'Onboarding', value: 'onboarding' },
-        { text: 'Growth', value: 'growth' },
-        { text: 'Maturity', value: 'maturity' },
-        { text: 'Decline', value: 'decline' },
-        { text: 'At-Risk', value: 'at_risk' },
+        { text: '온보딩', value: 'onboarding' },
+        { text: '성장', value: 'growth' },
+        { text: '성숙', value: 'maturity' },
+        { text: '감소', value: 'decline' },
+        { text: '위험', value: 'at_risk' },
       ],
-      onFilter: (value, record) => record.lifecycle === value,
+      render: (stage: string) => {
+        const stageNames: any = {
+          onboarding: '온보딩',
+          growth: '성장',
+          maturity: '성숙',
+          decline: '감소',
+          at_risk: '위험',
+        };
+        return stageNames[stage] || stage;
+      },
     },
     {
-      title: '이탈 위험도',
-      dataIndex: 'churn_score',
-      key: 'churn_score',
-      width: 150,
-      render: (score: number) => (
-        <Space>
-          <Progress
-            percent={score}
-            size="small"
-            strokeColor={score >= 90 ? '#f5222d' : score >= 70 ? '#fa8c16' : '#52c41a'}
-            showInfo={false}
-            style={{ width: 80 }}
-          />
-          <span style={{ 
-            fontWeight: score >= 70 ? 600 : 400,
-            color: score >= 90 ? '#f5222d' : score >= 70 ? '#fa8c16' : '#000'
-          }}>
-            {score}
-          </span>
-        </Space>
-      ),
-      sorter: (a, b) => b.churn_score - a.churn_score,
+      title: '이탈 확률',
+      dataIndex: 'churn_probability',
+      key: 'churn_probability',
+      width: 100,
+      sorter: (a: any, b: any) => a.churn_probability - b.churn_probability,
+      render: (prob: number) => `${(prob * 100).toFixed(1)}%`,
     },
     {
-      title: '마지막 거래',
-      dataIndex: 'last_txn_days',
-      key: 'last_txn_days',
-      width: 120,
-      render: (days: number) => `${days}일 전`,
-      sorter: (a, b) => b.last_txn_days - a.last_txn_days,
-    },
-    {
-      title: '월 평균 이용액',
-      dataIndex: 'monthly_amount',
-      key: 'monthly_amount',
-      width: 140,
+      title: '월 평균 사용액',
+      dataIndex: 'monthly_avg_amount',
+      key: 'monthly_avg_amount',
+      width: 130,
+      sorter: (a: any, b: any) => a.monthly_avg_amount - b.monthly_avg_amount,
       render: (amount: number) => `${(amount / 10000).toFixed(0)}만원`,
-      sorter: (a, b) => b.monthly_amount - a.monthly_amount,
     },
     {
-      title: '가입일',
-      dataIndex: 'join_date',
-      key: 'join_date',
+      title: '예상 LTV',
+      dataIndex: 'ltv_estimate',
+      key: 'ltv_estimate',
       width: 120,
-      sorter: (a, b) => a.join_date.localeCompare(b.join_date),
+      sorter: (a: any, b: any) => a.ltv_estimate - b.ltv_estimate,
+      render: (ltv: number) => `${(ltv / 10000).toFixed(0)}만원`,
+    },
+    {
+      title: '최근 거래일',
+      dataIndex: 'last_transaction_date',
+      key: 'last_transaction_date',
+      width: 120,
+    },
+    {
+      title: '액션',
+      key: 'action',
+      width: 80,
+      fixed: 'right' as const,
+      render: (_: any, record: any) => (
+        <Button
+          type="link"
+          icon={<EyeOutlined />}
+          onClick={() => navigate(`/customers/${record.customer_id}`)}
+        >
+          상세
+        </Button>
+      ),
     },
   ];
 
-  const handleExport = () => {
-    console.log('Export to Excel');
-    // TODO: 엑셀 내보내기 구현
-  };
-
   return (
     <div>
-      <Card>
-        <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-          {/* 검색 및 필터 */}
-          <Space style={{ width: '100%', justifyContent: 'space-between' }}>
-            <Space>
-              <Search
-                placeholder="고객 ID, 이름 검색"
-                allowClear
-                enterButton={<SearchOutlined />}
-                style={{ width: 300 }}
-                onSearch={(value) => setSearchText(value)}
-              />
-              <Select
-                defaultValue="all"
-                style={{ width: 150 }}
-                options={[
-                  { value: 'all', label: '전체 고객' },
-                  { value: 'high_risk', label: '고위험군 (70+)' },
-                  { value: 'medium_risk', label: '중위험군 (50-69)' },
-                  { value: 'low_risk', label: '저위험군 (0-49)' }
-                ]}
-              />
-            </Space>
-            
-            <Button 
-              icon={<ExportOutlined />} 
-              onClick={handleExport}
-            >
-              엑셀 내보내기
-            </Button>
-          </Space>
+      <h1 style={{ marginBottom: 24 }}>고객 목록</h1>
 
-          {/* 테이블 */}
-          <Table
-            columns={columns}
-            dataSource={customerData}
-            loading={loading}
-            pagination={{
-              total: customerData.length,
-              pageSize: 20,
-              showSizeChanger: true,
-              showTotal: (total) => `전체 ${total}명`,
-            }}
-            scroll={{ x: 1400 }}
+      {/* 통계 요약 */}
+      <Row gutter={16} style={{ marginBottom: 24 }}>
+        <Col span={6}>
+          <Card>
+            <Statistic title="전체 고객" value={total} suffix="명" />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card>
+            <Statistic
+              title="현재 페이지"
+              value={customers.length}
+              suffix={`/ ${pageSize}명`}
+            />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card>
+            <Statistic
+              title="평균 위험도"
+              value={
+                customers.length > 0
+                  ? (
+                      customers.reduce((sum, c) => sum + c.risk_score, 0) / customers.length
+                    ).toFixed(1)
+                  : 0
+              }
+            />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card>
+            <Statistic
+              title="고위험 고객"
+              value={customers.filter((c) => c.risk_level === 'CRITICAL' || c.risk_level === 'HIGH').length}
+              suffix="명"
+              valueStyle={{ color: '#cf1322' }}
+            />
+          </Card>
+        </Col>
+      </Row>
+
+      {/* 필터 & 액션 */}
+      <Card style={{ marginBottom: 16 }}>
+        <Space size="middle" wrap>
+          <Input
+            placeholder="고객 ID 또는 이름 검색"
+            prefix={<SearchOutlined />}
+            style={{ width: 250 }}
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            onPressEnter={handleSearch}
           />
+          <Select
+            placeholder="위험 등급"
+            style={{ width: 150 }}
+            allowClear
+            onChange={(value) => handleFilterChange('risk_level', value)}
+          >
+            <Option value="CRITICAL">CRITICAL</Option>
+            <Option value="HIGH">HIGH</Option>
+            <Option value="MEDIUM">MEDIUM</Option>
+            <Option value="LOW">LOW</Option>
+          </Select>
+          <Select
+            placeholder="생애주기"
+            style={{ width: 150 }}
+            allowClear
+            onChange={(value) => handleFilterChange('lifecycle', value)}
+          >
+            <Option value="onboarding">온보딩</Option>
+            <Option value="growth">성장</Option>
+            <Option value="maturity">성숙</Option>
+            <Option value="decline">감소</Option>
+            <Option value="at_risk">위험</Option>
+          </Select>
+          <Button type="primary" icon={<SearchOutlined />} onClick={handleSearch}>
+            검색
+          </Button>
+          <Button icon={<FilterOutlined />} onClick={() => setFilters({})}>
+            필터 초기화
+          </Button>
         </Space>
+        <Space style={{ float: 'right' }}>
+          <Upload beforeUpload={handleBatchUpload} showUploadList={false} accept=".csv">
+            <Button icon={<UploadOutlined />}>배치 업로드</Button>
+          </Upload>
+          <Button icon={<ExportOutlined />} onClick={handleExport}>
+            Excel 내보내기
+          </Button>
+        </Space>
+      </Card>
+
+      {/* 테이블 */}
+      <Card>
+        <Table
+          columns={columns}
+          dataSource={customers}
+          rowKey="customer_id"
+          loading={loading}
+          pagination={{
+            current: page,
+            pageSize,
+            total,
+            showSizeChanger: true,
+            showTotal: (total) => `전체 ${total.toLocaleString()}명`,
+            onChange: (page, pageSize) => {
+              setPage(page);
+              setPageSize(pageSize);
+            },
+          }}
+          scroll={{ x: 1800 }}
+        />
       </Card>
     </div>
   );
