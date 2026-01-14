@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Card,
   Row,
@@ -12,6 +13,10 @@ import {
   Table,
   Tabs,
   Progress,
+  Modal,
+  message,
+  Input,
+  Select,
 } from 'antd';
 import {
   ArrowUpOutlined,
@@ -22,16 +27,28 @@ import {
   CheckCircleOutlined,
   WarningOutlined,
   RiseOutlined,
+  RobotOutlined,
+  BankOutlined,
+  SafetyCertificateOutlined,
+  TrophyOutlined,
 } from '@ant-design/icons';
 import ReactECharts from 'echarts-for-react';
 import apiClient from '../services/api';
 import type { EChartsOption } from 'echarts';
 
+const { TextArea } = Input;
+const { Option } = Select;
+
 const Dashboard: React.FC = () => {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<any>(null);
   const [alerts, setAlerts] = useState<any[]>([]);
   const [segmentData, setSegmentData] = useState<any>(null);
+  const [counselingModalVisible, setCounselingModalVisible] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
+  const [counselingType, setCounselingType] = useState('phone');
+  const [counselingNote, setCounselingNote] = useState('');
 
   useEffect(() => {
     loadDashboardData();
@@ -69,6 +86,43 @@ const Dashboard: React.FC = () => {
     } catch (error) {
       console.error('Failed to load realtime metrics:', error);
     }
+  };
+
+  // 상담 모달 열기
+  const handleOpenCounseling = (record: any) => {
+    setSelectedCustomer(record);
+    setCounselingModalVisible(true);
+  };
+
+  // 상담 요청 처리
+  const handleCounselingSubmit = async () => {
+    try {
+      // 상담 메모 저장
+      await apiClient.addCustomerNote(selectedCustomer.customer_id, {
+        content: `[${counselingType === 'phone' ? '전화상담' : counselingType === 'email' ? '이메일상담' : '방문상담'}] ${counselingNote}`,
+        type: '상담',
+      });
+      message.success(`${selectedCustomer.customer_name} 고객 상담이 등록되었습니다`);
+      setCounselingModalVisible(false);
+      setCounselingNote('');
+    } catch (error) {
+      message.error('상담 등록에 실패했습니다');
+    }
+  };
+
+  // 고객 상세 페이지로 이동
+  const handleViewDetail = (customerId: string) => {
+    navigate(`/customers/${customerId}`);
+  };
+
+  // 전체 알림 보기 (고객 리스트 페이지로 이동, 고위험 필터 적용)
+  const handleViewAllAlerts = () => {
+    navigate('/customers?risk_level=CRITICAL');
+  };
+
+  // 상세 분석 페이지로 이동
+  const handleViewDetailedAnalysis = () => {
+    navigate('/analytics');
   };
 
   if (loading) {
@@ -242,13 +296,15 @@ const Dashboard: React.FC = () => {
     {
       title: '액션',
       key: 'action',
-      width: 100,
+      width: 150,
       render: (_: any, record: any) => (
         <Space size="small">
-          <Button type="primary" size="small">
+          <Button type="primary" size="small" onClick={() => handleOpenCounseling(record)}>
             상담
           </Button>
-          <Button size="small">상세</Button>
+          <Button size="small" onClick={() => handleViewDetail(record.customer_id)}>
+            상세
+          </Button>
         </Space>
       ),
     },
@@ -256,9 +312,56 @@ const Dashboard: React.FC = () => {
 
   return (
     <div>
-      <h1 style={{ marginBottom: 24 }}>
-        <RiseOutlined /> 실시간 대시보드
-      </h1>
+      {/* 브랜드 헤더 영역 */}
+      <div style={{ 
+        marginBottom: 24, 
+        padding: '16px 20px',
+        background: 'linear-gradient(135deg, #f0f5ff 0%, #e6f4ff 100%)',
+        borderRadius: 12,
+        border: '1px solid #91caff',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <div style={{ 
+            background: '#002766', 
+            color: '#fff', 
+            padding: '8px 16px', 
+            borderRadius: 8,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8
+          }}>
+            <BankOutlined style={{ fontSize: 20 }} />
+            <span style={{ fontSize: 18, fontWeight: 700 }}>IBK 기업은행</span>
+          </div>
+          <div>
+            <h1 style={{ margin: 0, fontSize: 22, color: '#002766' }}>
+              <RiseOutlined /> 카드고객 이탈방지 대시보드
+            </h1>
+            <div style={{ fontSize: 12, color: '#666', marginTop: 4 }}>
+              실시간 AI 분석 기반 고객 이탈 예측 및 방지 시스템
+            </div>
+          </div>
+        </div>
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: 12,
+          background: 'rgba(255,215,0,0.15)',
+          padding: '8px 16px',
+          borderRadius: 8,
+          border: '1px solid #ffc53d'
+        }}>
+          <RobotOutlined style={{ fontSize: 24, color: '#d48806' }} />
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: '#d48806' }}>범온누리 AI</div>
+            <div style={{ fontSize: 10, color: '#ad6800' }}>XGBoost + LightGBM + RF Ensemble</div>
+            <div style={{ fontSize: 10, color: '#ad6800' }}>AUC 0.9941 | Precision 0.88</div>
+          </div>
+        </div>
+      </div>
 
       {/* 주요 지표 */}
       <Row gutter={16} style={{ marginBottom: 24 }}>
@@ -317,7 +420,7 @@ const Dashboard: React.FC = () => {
           </span>
         }
         extra={
-          <Button type="primary" danger>
+          <Button type="primary" danger onClick={handleViewAllAlerts}>
             전체 보기
           </Button>
         }
@@ -360,7 +463,7 @@ const Dashboard: React.FC = () => {
         title="세그먼트 분석"
         style={{ marginBottom: 24 }}
         extra={
-          <Button type="link">상세 분석 →</Button>
+          <Button type="link" onClick={handleViewDetailedAnalysis}>상세 분석 →</Button>
         }
       >
         <Tabs
@@ -476,25 +579,35 @@ const Dashboard: React.FC = () => {
         />
       </Card>
 
-      {/* 예상 비즈니스 임팩트 */}
-      <Card title={<span><DollarOutlined /> 예상 비즈니스 임팩트</span>}>
+      {/* 예상 비즈니스 임팩트 + 범온누리 AI 성과 */}
+      <Card 
+        title={
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span><DollarOutlined /> 예상 비즈니스 임팩트</span>
+            <Tag color="gold" icon={<RobotOutlined />}>범온누리 AI 성과</Tag>
+          </div>
+        }
+        style={{ marginBottom: 24 }}
+      >
         <Row gutter={16}>
-          <Col span={8}>
+          <Col span={6}>
             <Statistic
               title="연간 매출 손실 방지"
               value={stats.summary.revenue_protected}
               valueStyle={{ color: '#3f8600' }}
+              prefix={<SafetyCertificateOutlined />}
             />
           </Col>
-          <Col span={8}>
+          <Col span={6}>
             <Statistic
               title="예상 ROI"
               value={1425}
               suffix="%"
               valueStyle={{ color: '#3f8600' }}
+              prefix={<TrophyOutlined />}
             />
           </Col>
-          <Col span={8}>
+          <Col span={6}>
             <Statistic
               title="평균 조기 감지"
               value="3-6"
@@ -502,8 +615,100 @@ const Dashboard: React.FC = () => {
               valueStyle={{ color: '#1890ff' }}
             />
           </Col>
+          <Col span={6}>
+            <Statistic
+              title="AI 모델 정확도"
+              value={99.41}
+              suffix="%"
+              valueStyle={{ color: '#d48806' }}
+              prefix={<RobotOutlined />}
+            />
+          </Col>
         </Row>
       </Card>
+      
+      {/* 푸터 - 솔루션 제공사 정보 */}
+      <Card 
+        style={{ 
+          background: 'linear-gradient(135deg, #fffbe6 0%, #fff7e6 100%)',
+          border: '1px solid #ffe58f'
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <div style={{ 
+              background: '#fff', 
+              padding: '12px 20px', 
+              borderRadius: 8,
+              boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12
+            }}>
+              <RobotOutlined style={{ fontSize: 28, color: '#d48806' }} />
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 16, color: '#d48806' }}>(주)범온누리 이노베이션</div>
+                <div style={{ fontSize: 11, color: '#8c8c8c' }}>AI 기반 비즈니스 인텔리전스 솔루션</div>
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: 12, color: '#8c6d1f' }}>
+                <strong>모델 성능:</strong> AUC 0.9941 | Precision 0.8810 | Recall 0.9435
+              </div>
+              <div style={{ fontSize: 12, color: '#8c6d1f', marginTop: 4 }}>
+                <strong>앱상블 구성:</strong> XGBoost + LightGBM + RandomForest (GPU 가속)
+              </div>
+            </div>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <Tag color="blue" style={{ marginBottom: 4 }}>IBK 기업은행 전용</Tag>
+            <div style={{ fontSize: 10, color: '#8c8c8c' }}>v2.0 | 2026년 1월 업데이트</div>
+          </div>
+        </div>
+      </Card>
+      {/* 상담 등록 모달 */}
+      <Modal
+        title={`고객 상담 등록 - ${selectedCustomer?.customer_name || ''}`}
+        open={counselingModalVisible}
+        onOk={handleCounselingSubmit}
+        onCancel={() => {
+          setCounselingModalVisible(false);
+          setCounselingNote('');
+        }}
+        okText="등록"
+        cancelText="취소"
+      >
+        <Space direction="vertical" style={{ width: '100%' }}>
+          <div>
+            <strong>고객 정보:</strong>
+            <div>ID: {selectedCustomer?.customer_id}</div>
+            <div>위험도: <Tag color="red">{selectedCustomer?.risk_score}점</Tag></div>
+            <div>이탈 사유: {selectedCustomer?.reason}</div>
+          </div>
+          <div style={{ marginTop: 16 }}>
+            <strong>상담 유형:</strong>
+            <Select
+              value={counselingType}
+              onChange={setCounselingType}
+              style={{ width: '100%', marginTop: 8 }}
+            >
+              <Option value="phone">전화 상담</Option>
+              <Option value="email">이메일 상담</Option>
+              <Option value="visit">방문 상담</Option>
+            </Select>
+          </div>
+          <div style={{ marginTop: 16 }}>
+            <strong>상담 메모:</strong>
+            <TextArea
+              rows={4}
+              placeholder="상담 내용을 입력하세요..."
+              value={counselingNote}
+              onChange={(e) => setCounselingNote(e.target.value)}
+              style={{ marginTop: 8 }}
+            />
+          </div>
+        </Space>
+      </Modal>
     </div>
   );
 };

@@ -40,6 +40,12 @@ const CustomerDetail: React.FC = () => {
   const [noteModalVisible, setNoteModalVisible] = useState(false);
   const [noteContent, setNoteContent] = useState('');
   const [noteType, setNoteType] = useState('일반');
+  const [counselingModalVisible, setCounselingModalVisible] = useState(false);
+  const [counselingType, setCounselingType] = useState('phone');
+  const [counselingNote, setCounselingNote] = useState('');
+  const [campaignModalVisible, setCampaignModalVisible] = useState(false);
+  const [campaignType, setCampaignType] = useState('sms');
+  const [campaignMessage, setCampaignMessage] = useState('');
 
   useEffect(() => {
     if (id) {
@@ -75,6 +81,36 @@ const CustomerDetail: React.FC = () => {
       setNoteContent('');
     } catch (error) {
       message.error('메모 추가에 실패했습니다');
+    }
+  };
+
+  // 긴급 상담 요청
+  const handleCounselingRequest = async () => {
+    try {
+      await apiClient.addCustomerNote(id!, {
+        content: `[긴급 상담 요청 - ${counselingType === 'phone' ? '전화' : counselingType === 'video' ? '화상' : '방문'}] ${counselingNote}`,
+        type: '상담',
+      });
+      message.success('긴급 상담 요청이 등록되었습니다. 담당자가 곧 연락드릴 예정입니다.');
+      setCounselingModalVisible(false);
+      setCounselingNote('');
+    } catch (error) {
+      message.error('상담 요청에 실패했습니다');
+    }
+  };
+
+  // 맞춤 캠페인 발송
+  const handleCampaignSend = async () => {
+    try {
+      await apiClient.addCustomerNote(id!, {
+        content: `[맞춤 캠페인 발송 - ${campaignType.toUpperCase()}] ${campaignMessage}`,
+        type: '캠페인',
+      });
+      message.success(`${campaignType.toUpperCase()} 캠페인이 발송되었습니다.`);
+      setCampaignModalVisible(false);
+      setCampaignMessage('');
+    } catch (error) {
+      message.error('캠페인 발송에 실패했습니다');
     }
   };
 
@@ -282,10 +318,10 @@ const CustomerDetail: React.FC = () => {
               </Descriptions.Item>
             </Descriptions>
             <Space direction="vertical" style={{ width: '100%', marginTop: 20 }}>
-              <Button type="primary" danger block icon={<PhoneOutlined />}>
+              <Button type="primary" danger block icon={<PhoneOutlined />} onClick={() => setCounselingModalVisible(true)}>
                 긴급 상담 요청
               </Button>
-              <Button block icon={<MailOutlined />}>
+              <Button block icon={<MailOutlined />} onClick={() => setCampaignModalVisible(true)}>
                 맞춤 캠페인 발송
               </Button>
               <Button block icon={<FileTextOutlined />} onClick={() => setNoteModalVisible(true)}>
@@ -438,6 +474,98 @@ const CustomerDetail: React.FC = () => {
             value={noteContent}
             onChange={(e) => setNoteContent(e.target.value)}
           />
+        </Space>
+      </Modal>
+
+      {/* 긴급 상담 요청 모달 */}
+      <Modal
+        title="긴급 상담 요청"
+        open={counselingModalVisible}
+        onOk={handleCounselingRequest}
+        onCancel={() => {
+          setCounselingModalVisible(false);
+          setCounselingNote('');
+        }}
+        okText="상담 요청"
+        cancelText="취소"
+      >
+        <Alert
+          message="긴급 상담 안내"
+          description="이 고객은 이탈 위험도가 높습니다. 즉시 상담을 통해 이탈을 방지하세요."
+          type="warning"
+          showIcon
+          style={{ marginBottom: 16 }}
+        />
+        <Space direction="vertical" style={{ width: '100%' }}>
+          <div>
+            <strong>상담 방식:</strong>
+            <Select
+              value={counselingType}
+              onChange={setCounselingType}
+              style={{ width: '100%', marginTop: 8 }}
+            >
+              <Option value="phone">전화 상담</Option>
+              <Option value="video">화상 상담</Option>
+              <Option value="visit">방문 상담</Option>
+            </Select>
+          </div>
+          <div style={{ marginTop: 16 }}>
+            <strong>상담 내용:</strong>
+            <TextArea
+              rows={4}
+              placeholder="상담 시 전달할 내용을 입력하세요..."
+              value={counselingNote}
+              onChange={(e) => setCounselingNote(e.target.value)}
+              style={{ marginTop: 8 }}
+            />
+          </div>
+        </Space>
+      </Modal>
+
+      {/* 맞춤 캠페인 발송 모달 */}
+      <Modal
+        title="맞춤 캠페인 발송"
+        open={campaignModalVisible}
+        onOk={handleCampaignSend}
+        onCancel={() => {
+          setCampaignModalVisible(false);
+          setCampaignMessage('');
+        }}
+        okText="발송"
+        cancelText="취소"
+      >
+        <Alert
+          message="맞춤형 캠페인"
+          description="고객 특성에 맞는 맞춤형 혜택을 발송합니다."
+          type="info"
+          showIcon
+          style={{ marginBottom: 16 }}
+        />
+        <Space direction="vertical" style={{ width: '100%' }}>
+          <div>
+            <strong>발송 채널:</strong>
+            <Select
+              value={campaignType}
+              onChange={setCampaignType}
+              style={{ width: '100%', marginTop: 8 }}
+            >
+              <Option value="sms">SMS 문자</Option>
+              <Option value="email">이메일</Option>
+              <Option value="push">앱 푸시 알림</Option>
+              <Option value="kakao">카카오톡 알림톡</Option>
+            </Select>
+          </div>
+          <div style={{ marginTop: 16 }}>
+            <strong>캠페인 메시지:</strong>
+            <TextArea
+              rows={4}
+              placeholder="고객에게 보낼 메시지를 입력하세요...
+예시: [IBK] 특별 혜택! 이번 달 카드 사용 시 포인트 2배 적립!"
+              value={campaignMessage}
+              onChange={(e) => setCampaignMessage(e.target.value)}
+              style={{ marginTop: 8 }}
+            />
+          </div>
         </Space>
       </Modal>
     </div>

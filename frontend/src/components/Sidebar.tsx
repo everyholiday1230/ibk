@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
-import { Layout, Menu } from 'antd';
+import React from 'react';
+import { Layout, Menu, Tooltip } from 'antd';
 import {
   DashboardOutlined,
   UserOutlined,
   BarChartOutlined,
   BellOutlined,
   SettingOutlined,
-  BankOutlined
+  BankOutlined,
+  RobotOutlined
 } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import type { MenuProps } from 'antd';
@@ -68,27 +69,91 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => {
         left: 0,
         top: 0,
         bottom: 0,
+        background: 'linear-gradient(180deg, #001529 0%, #002140 100%)'
       }}
     >
+      {/* 로고 영역 */}
       <div style={{ 
         height: 64, 
         margin: 16, 
         display: 'flex', 
+        flexDirection: 'column',
         alignItems: 'center', 
         justifyContent: 'center',
         color: '#fff',
-        fontSize: collapsed ? 20 : 24,
-        fontWeight: 'bold'
       }}>
-        {collapsed ? <BankOutlined /> : 'IBK AI'}
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: 8,
+          fontSize: collapsed ? 20 : 24,
+          fontWeight: 'bold'
+        }}>
+          <BankOutlined style={{ color: '#1890ff' }} />
+          {!collapsed && <span>IBK</span>}
+        </div>
+        {!collapsed && (
+          <div style={{ 
+            fontSize: 10, 
+            color: 'rgba(255,255,255,0.65)',
+            marginTop: 2
+          }}>
+            카드고객 이탈방지
+          </div>
+        )}
       </div>
+      
       <Menu
         theme="dark"
         selectedKeys={[location.pathname]}
         mode="inline"
         items={items}
         onClick={handleMenuClick}
+        style={{ background: 'transparent' }}
       />
+      
+      {/* 하단 범온누리 브랜드 영역 */}
+      <div style={{
+        position: 'absolute',
+        bottom: 60,
+        left: 0,
+        right: 0,
+        padding: '12px 16px',
+        borderTop: '1px solid rgba(255,255,255,0.1)',
+      }}>
+        {collapsed ? (
+          <Tooltip title="Powered by 범온누리 AI">
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'center',
+              color: '#ffc53d'
+            }}>
+              <RobotOutlined style={{ fontSize: 18 }} />
+            </div>
+          </Tooltip>
+        ) : (
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              gap: 6,
+              marginBottom: 4
+            }}>
+              <RobotOutlined style={{ color: '#ffc53d', fontSize: 14 }} />
+              <span style={{ color: '#ffc53d', fontSize: 12, fontWeight: 600 }}>
+                범온누리 AI
+              </span>
+            </div>
+            <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.45)' }}>
+              Powered by 범온누리 이노베이션
+            </div>
+            <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)', marginTop: 2 }}>
+              XGBoost + LightGBM + RF Ensemble
+            </div>
+          </div>
+        )}
+      </div>
     </Sider>
   );
 };
