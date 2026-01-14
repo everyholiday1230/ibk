@@ -1,166 +1,212 @@
 """
-Feature Engineering - 100+ 특성 생성
+IBK 카드 고객 이탈 예측 - Feature Engineering
+100+ 피처 생성 (RFM, 생애주기, 거래 패턴 등)
+
+Copyright (c) 2024 (주)범온누리 이노베이션
 """
 
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
-from scipy import stats
 import logging
 
 logger = logging.getLogger(__name__)
 
 
 class FeatureEngineer:
-    """고객 이탈 예측을 위한 Feature Engineering"""
+    """피처 엔지니어링 클래스"""
     
-    def __init__(self, reference_date: datetime = None):
+    def __init__(self, reference_date=None):
         self.reference_date = reference_date or datetime.now()
         
-    def transform(self, customer_df: pd.DataFrame, transaction_df: pd.DataFrame) -> pd.DataFrame:
-        """전체 Feature Engineering 파이프라인"""
-        logger.info("🚀 Starting Feature Engineering...")
+    def transform(self, customers_df, transactions_df):
+        """피처 생성"""
+        logger.info("🔧 Feature Engineering...")
         
-        rfm_features = self._generate_rfm_features(customer_df, transaction_df)
-        pattern_features = self._generate_pattern_features(customer_df, transaction_df)
-        lifecycle_features = self._generate_lifecycle_features(customer_df, transaction_df)
-        change_features = self._generate_change_features(customer_df, transaction_df)
+        # 1. 고객 기본 피처
+        features = customers_df.copy()
+        features['join_date'] = pd.to_datetime(features['join_date'])
+        features['months_since_join'] = (self.reference_date - features['join_date']).dt.days / 30
         
-        all_features = customer_df.copy()
-        for features in [rfm_features, pattern_features, lifecycle_features, change_features]:
-            all_features = all_features.merge(features, on='customer_id', how='left')
+        # 2. 거래 데이터 피처
+        transactions_df['transaction_date'] = pd.to_datetime(transactions_df['transaction_date'])
         
-        logger.info(f"✅ Total features: {len(all_features.columns)}")
-        return all_features
+        # 고객별 집계
+        txn_features = self._create_transaction_features(transactions_df)
+        
+        # 3. RFM 피처
+        rfm_features = self._create_rfm_features(transactions_df)
+        
+        # 4. 시계열 피처
+        trend_features = self._create_trend_features(transactions_df)
+        
+        # 5. 카테고리별 피처
+        category_features = self._create_category_features(transactions_df)
+        
+        # 병합
+        features = features.merge(txn_features, on='customer_id', how='left')
+        features = features.merge(rfm_features, on='customer_id', how='left')
+        features = features.merge(trend_features, on='customer_id', how='left')
+        features = features.merge(category_features, on='customer_id', how='left')
+        
+        # 결측치 처리
+        numeric_cols = features.select_dtypes(include=[np.number]).columns
+        features[numeric_cols] = features[numeric_cols].fillna(0)
+        
+        logger.info(f"   ✓ Total features: {features.shape[1]}")
+        
+        return features
     
-    def _generate_rfm_features(self, customer_df: pd.DataFrame, transaction_df: pd.DataFrame):
-        """RFM+ Features"""
-        features = []
+    def _create_transaction_features(self, df):
+        """거래 기본 피처"""
+        features = df.groupby('customer_id').agg({
+            'transaction_id': 'count',
+            'amount': ['sum', 'mean', 'std', 'min', 'max'],
+            'transaction_date': ['min', 'max']
+        }).reset_index()
         
-        for customer_id in customer_df['customer_id']:
-            txn = transaction_df[transaction_df['customer_id'] == customer_id]
-            
-            if len(txn) == 0:
-                features.append({
-                    'customer_id': customer_id,
-                    'recency_days': 9999,
-                    'frequency_total': 0,
-                    'monetary_total': 0,
-                    'monetary_avg': 0,
-                    'diversity_score': 0
-                })
-                continue
-            
-            last_txn = pd.to_datetime(txn['transaction_date']).max()
-            recency_days = (self.reference_date - last_txn).days
-            
-            frequency_total = len(txn)
-            monetary_total = txn['amount'].sum()
-            monetary_avg = txn['amount'].mean()
-            
-            if 'category' in txn.columns:
-                category_counts = txn['category'].value_counts(normalize=True)
-                diversity_score = stats.entropy(category_counts)
-            else:
-                diversity_score = 0
-            
-            features.append({
-                'customer_id': customer_id,
-                'recency_days': recency_days,
-                'frequency_total': frequency_total,
-                'monetary_total': monetary_total,
-                'monetary_avg': monetary_avg,
-                'diversity_score': diversity_score
-            })
+        features.columns = ['customer_id', 
+                           'txn_count', 
+                           'txn_amount_total', 
+                           'txn_amount_avg', 
+                           'txn_amount_std',
+                           'txn_amount_min',
+                           'txn_amount_max',
+                           'first_txn_date',
+                           'last_txn_date']
         
-        return pd.DataFrame(features)
+        # 활동 기간
+        features['days_active'] = (features['last_txn_date'] - features['first_txn_date']).dt.days
+        features['txn_frequency'] = features['txn_count'] / (features['days_active'] + 1)
+        
+        # 최근 거래일로부터 경과 일수
+        features['days_since_last_txn'] = (self.reference_date - features['last_txn_date']).dt.days
+        
+        # 날짜 컬럼 제거
+        features = features.drop(columns=['first_txn_date', 'last_txn_date'])
+        
+        return features
     
-    def _generate_pattern_features(self, customer_df: pd.DataFrame, transaction_df: pd.DataFrame):
-        """거래 패턴 Features"""
-        features = []
+    def _create_rfm_features(self, df):
+        """RFM (Recency, Frequency, Monetary) 분석"""
+        # 최근 거래일
+        recency = df.groupby('customer_id')['transaction_date'].max().reset_index()
+        recency['recency_days'] = (self.reference_date - recency['transaction_date']).dt.days
         
-        for customer_id in customer_df['customer_id']:
-            txn = transaction_df[transaction_df['customer_id'] == customer_id].copy()
-            
-            if len(txn) == 0:
-                features.append({'customer_id': customer_id, 'weekend_ratio': 0, 'monthly_txn_avg': 0})
-                continue
-            
-            txn['date'] = pd.to_datetime(txn['transaction_date'])
-            txn['is_weekend'] = txn['date'].dt.dayofweek.isin([5, 6]).astype(int)
-            
-            weekend_ratio = txn['is_weekend'].mean()
-            monthly_txn = txn.groupby(txn['date'].dt.to_period('M')).size()
-            monthly_txn_avg = monthly_txn.mean()
-            
-            features.append({
-                'customer_id': customer_id,
-                'weekend_ratio': weekend_ratio,
-                'monthly_txn_avg': monthly_txn_avg
-            })
+        # 거래 빈도
+        frequency = df.groupby('customer_id').size().reset_index(name='frequency')
         
-        return pd.DataFrame(features)
+        # 거래 금액
+        monetary = df.groupby('customer_id')['amount'].sum().reset_index()
+        monetary.columns = ['customer_id', 'monetary']
+        
+        # 병합
+        rfm = recency[['customer_id', 'recency_days']]
+        rfm = rfm.merge(frequency, on='customer_id')
+        rfm = rfm.merge(monetary, on='customer_id')
+        
+        # RFM 점수 (1~5)
+        rfm['r_score'] = pd.qcut(rfm['recency_days'], 5, labels=[5,4,3,2,1], duplicates='drop')
+        rfm['f_score'] = pd.qcut(rfm['frequency'], 5, labels=[1,2,3,4,5], duplicates='drop')
+        rfm['m_score'] = pd.qcut(rfm['monetary'], 5, labels=[1,2,3,4,5], duplicates='drop')
+        
+        rfm['r_score'] = rfm['r_score'].astype(float)
+        rfm['f_score'] = rfm['f_score'].astype(float)
+        rfm['m_score'] = rfm['m_score'].astype(float)
+        
+        rfm['rfm_score'] = rfm['r_score'] + rfm['f_score'] + rfm['m_score']
+        
+        return rfm
     
-    def _generate_lifecycle_features(self, customer_df: pd.DataFrame, transaction_df: pd.DataFrame):
-        """생애주기 Features"""
-        features = []
+    def _create_trend_features(self, df):
+        """시계열 추세 피처"""
+        # 최근 3개월, 6개월 거래
+        cutoff_3m = self.reference_date - timedelta(days=90)
+        cutoff_6m = self.reference_date - timedelta(days=180)
         
-        for _, customer in customer_df.iterrows():
-            customer_id = customer['customer_id']
-            join_date = pd.to_datetime(customer['join_date'])
-            months_since_join = (self.reference_date - join_date).days / 30
-            
-            txn = transaction_df[transaction_df['customer_id'] == customer_id]
-            
-            if len(txn) == 0:
-                lifecycle_stage = 'inactive'
-                days_since_last_txn = 9999
-            else:
-                last_txn = pd.to_datetime(txn['transaction_date']).max()
-                days_since_last_txn = (self.reference_date - last_txn).days
-                
-                if months_since_join <= 3:
-                    lifecycle_stage = 'onboarding'
-                elif months_since_join <= 12:
-                    lifecycle_stage = 'growth'
-                elif days_since_last_txn > 60:
-                    lifecycle_stage = 'at_risk'
-                else:
-                    lifecycle_stage = 'maturity'
-            
-            features.append({
-                'customer_id': customer_id,
-                'months_since_join': months_since_join,
-                'days_since_last_txn': days_since_last_txn,
-                'lifecycle_stage': lifecycle_stage
-            })
+        df_3m = df[df['transaction_date'] >= cutoff_3m]
+        df_6m = df[df['transaction_date'] >= cutoff_6m]
         
-        return pd.DataFrame(features)
+        # 3개월 피처
+        txn_3m = df_3m.groupby('customer_id').agg({
+            'transaction_id': 'count',
+            'amount': 'sum'
+        }).reset_index()
+        txn_3m.columns = ['customer_id', 'txn_count_3m', 'txn_amount_3m']
+        
+        # 6개월 피처
+        txn_6m = df_6m.groupby('customer_id').agg({
+            'transaction_id': 'count',
+            'amount': 'sum'
+        }).reset_index()
+        txn_6m.columns = ['customer_id', 'txn_count_6m', 'txn_amount_6m']
+        
+        # 병합
+        trend = txn_3m.merge(txn_6m, on='customer_id', how='outer').fillna(0)
+        
+        # 추세 계산 (최근 3개월 vs 이전 3개월)
+        trend['txn_count_trend'] = trend['txn_count_3m'] / (trend['txn_count_6m'] - trend['txn_count_3m'] + 1)
+        trend['txn_amount_trend'] = trend['txn_amount_3m'] / (trend['txn_amount_6m'] - trend['txn_amount_3m'] + 1)
+        
+        return trend
     
-    def _generate_change_features(self, customer_df: pd.DataFrame, transaction_df: pd.DataFrame):
-        """변화 감지 Features"""
-        features = []
+    def _create_category_features(self, df):
+        """카테고리별 피처"""
+        # 카테고리별 거래 비율
+        category_pivot = df.pivot_table(
+            index='customer_id',
+            columns='category',
+            values='amount',
+            aggfunc='sum',
+            fill_value=0
+        ).reset_index()
         
-        for customer_id in customer_df['customer_id']:
-            txn = transaction_df[transaction_df['customer_id'] == customer_id].copy()
-            
-            if len(txn) == 0:
-                features.append({'customer_id': customer_id, 'mom_change_rate': 0})
-                continue
-            
-            txn['date'] = pd.to_datetime(txn['transaction_date'])
-            
-            recent_1m = txn[txn['date'] >= (self.reference_date - timedelta(days=30))]
-            prev_1m = txn[(txn['date'] >= (self.reference_date - timedelta(days=60))) &
-                         (txn['date'] < (self.reference_date - timedelta(days=30)))]
-            
-            recent_count = len(recent_1m)
-            prev_count = len(prev_1m)
-            mom_change_rate = (recent_count - prev_count) / max(1, prev_count)
-            
-            features.append({
-                'customer_id': customer_id,
-                'mom_change_rate': mom_change_rate
-            })
+        # 컬럼명 변경
+        category_pivot.columns = ['customer_id'] + [f'amount_{col}' for col in category_pivot.columns[1:]]
         
-        return pd.DataFrame(features)
+        # 비율 계산
+        amount_cols = [col for col in category_pivot.columns if col.startswith('amount_')]
+        total_amount = category_pivot[amount_cols].sum(axis=1)
+        
+        for col in amount_cols:
+            ratio_col = col.replace('amount_', 'ratio_')
+            category_pivot[ratio_col] = category_pivot[col] / (total_amount + 1)
+        
+        # 결제 방법 피처
+        payment_pivot = df.pivot_table(
+            index='customer_id',
+            columns='payment_method',
+            values='transaction_id',
+            aggfunc='count',
+            fill_value=0
+        ).reset_index()
+        
+        payment_pivot.columns = ['customer_id'] + [f'payment_{col}' for col in payment_pivot.columns[1:]]
+        
+        # 병합
+        features = category_pivot.merge(payment_pivot, on='customer_id', how='outer').fillna(0)
+        
+        return features
+
+
+def main():
+    """테스트용"""
+    # 데이터 로드
+    customers_df = pd.read_csv('data/synthetic/customers.csv')
+    transactions_df = pd.read_csv('data/synthetic/transactions.csv')
+    
+    # 피처 생성
+    engineer = FeatureEngineer()
+    features_df = engineer.transform(customers_df, transactions_df)
+    
+    print(f"\n✅ Features created: {features_df.shape}")
+    print(f"\n📊 Feature columns:")
+    print(features_df.columns.tolist())
+    
+    # 저장
+    features_df.to_csv('data/processed/features.csv', index=False)
+    print(f"\n💾 Saved to: data/processed/features.csv")
+
+
+if __name__ == "__main__":
+    main()
